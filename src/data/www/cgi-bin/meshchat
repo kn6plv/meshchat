@@ -352,7 +352,7 @@ function local_files_raw()
     for file in nixio.fs.dir(local_files_dir)
     do
         local stat = nixio.fs.stat(local_files_dir .. "/" .. file)
-        f:write(file .. "\t" .. name .. "\t" .. stat.size .. "\t" .. stat.mtime .. platform .. "\n")
+        f:write(file .. "\t" .. name .. "\t" .. stat.size .. "\t" .. stat.mtime .. "\t" .. platform .. "\n")
     end
     f:close()
 
