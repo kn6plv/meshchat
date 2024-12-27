@@ -1,6 +1,6 @@
 Package: meshchat-api
-Version: 2.10
-Depends:
+Version: 2.13
+Depends: luci-lib-base
 Provides:
 Source: package/meshchat-api
 Section: net

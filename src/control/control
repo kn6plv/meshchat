@@ -1,6 +1,6 @@
 Package: meshchat
-Version: 2.10
-Depends: curl
+Version: 2.13
+Depends: curl, luci-lib-base
 Provides:
 Source: package/meshchat
 Section: net

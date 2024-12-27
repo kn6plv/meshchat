@@ -514,7 +514,7 @@ function hosts()
     
     local node = node_name()
     local hosts = {}
-    for line in io.lines("/var/dhcp.leases")
+    for line in io.lines("/tmp/dhcp.leases")
     do
         local epoch, mac1, ip, hostname, mac2 = line:match("^(%S+)%s(%S+)%s(%S+)%s(%S+)%s(%S+)$")
         hosts[#hosts + 1] = {
@@ -564,7 +564,7 @@ function hosts_raw()
     print("\r")
     
     local hosts = {}
-    for line in io.lines("/var/dhcp.leases")
+    for line in io.lines("/tmp/dhcp.leases")
     do
         local epoch, mac1, ip, hostname, mac2 = line:match("^(%S+)%s(%S+)%s(%S+)%s(%S+)%s(%S+)$")
         hosts[#hosts + 1] = {
