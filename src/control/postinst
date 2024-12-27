@@ -1,38 +1,18 @@
 #!/bin/sh
 
-grep "|8080|meshchat" /etc/config.mesh/_setup.services.dmz &> /dev/null
-DMZPRESENT=$?
-grep "|8080|meshchat" /etc/config.mesh/_setup.services.nat &> /dev/null
-NATPRESENT=$?
-NODEMODE=$(uci -q -c /etc/local/uci/ get hsmmmesh.settings.config)
-RAND=$(awk 'BEGIN{srand();print int(rand()*10000) }')
-RESTART=0
+uci -c /etc/config.mesh show setup.services | grep "|8080|meshchat" &> /dev/null
+PRESENT=$?
 
-if [ "$DMZPRESENT" != 0 ]; then
-  echo "MeshChat-$RAND|1|http|$(uname -n)|8080|meshchat" >> /etc/config.mesh/_setup.services.dmz
-  RESTART=1
+if [ "$PRESENT" != 0 ]; then
+  RAND=$(awk 'BEGIN{srand();print int(rand()*10000) }')
+  uci -c /etc/config.mesh add_list setup.services.service="MeshChat-$RAND [chat]|1|http|$(uname -n)|8080|meshchat"
+  uci -c /etc/config.mesh commit setup
 fi
 
-if [ "$NATPRESENT" != 0 ]; then
-  echo "MeshChat-$RAND|1|http|$(uname -n)|8080|meshchat" >> /etc/config.mesh/_setup.services.nat
-  RESTART=1
-fi
-
-if [ "$NODEMODE" = "mesh" -a "$RESTART" = "1" ]; then
-  echo "Applying service announcement"
-  /usr/local/bin/node-setup -a -p mesh &> /dev/null
-  /etc/init.d/olsrd restart &> /dev/null
-fi
+/usr/local/bin/node-setup &> /dev/null
+/usr/local/bin/restart-services.sh &> /dev/null
 
 /etc/init.d/meshchatsync enable
 /etc/init.d/meshchatsync start
-
-echo "<br>"
-
-echo "Mesh Chat has been setup at http://$(uname -n):8080/meshchat"
-echo "<br>"
-if [ "$RESTART" = "1" ]; then
-  echo "An advertised service has been added for Mesh Chat on the Services configuration page"
-fi
 
 exit 0

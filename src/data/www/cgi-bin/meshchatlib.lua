@@ -56,18 +56,12 @@ function node_name()
 end
 
 function zone_name()
-    local dmz_mode = uci.cursor("/etc/config.mesh"):get("aredn", "@dmz[0]", "mode")
-    local servfile = "/etc/config.mesh/_setup.services.nat"
-    if dmz_mode ~= "0" then
-        servfile = "/etc/config.mesh/_setup.services.dmz"
-    end
-    if nixio.fs.access(servfile) then
-        for line in io.lines(servfile)
-        do
-            local zone = line:match("^(.*)|.*|.*|.*|.*|meshchat$")
-            if zone then
-                return zone
-            end
+    local services = uci.cursor("/etc/config.mesh"):get("setup", "services", "service") or {}
+    for _, service in ipairs(services)
+    do
+        local zone = service:match("^(.*)%s+%[.+%]|.*|.*|.*|.*|meshchat$") or service:match("^(.*)|.*|.*|.*|.*|meshchat$")
+        if zone then
+            return zone
         end
     end
     return "MeshChat"
