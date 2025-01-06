@@ -3,7 +3,7 @@
 
 	Part of AREDN -- Used for creating Amateur Radio Emergency Data Networks
 	Copyright (C) 2022 Tim Wilkinson
-    Base on code (C) Trevor Paskett (see https://github.com/tpaskett)
+	Base on code (C) Trevor Paskett (see https://github.com/tpaskett)
 	See Contributors file for additional contributors
 
 	This program is free software: you can redistribute it and/or modify
@@ -38,20 +38,23 @@
 package.path = package.path .. ";/www/cgi-bin/?.lua"
 
 require('luci.http')
-require("luci.jsonc")
+local json = require("luci.jsonc")
 require("nixio")
 require("meshchatconfig")
 require("meshchatlib")
+
+---
+-- @module meshchat
 
 local query = {}
 local uploadfilename
 if os.getenv("QUERY_STRING") ~= "" or os.getenv("REQUEST_METHOD") == "POST" then
     local request = luci.http.Request(nixio.getenv(),
-        function()
-            local v = io.read(1024)
-            if not v then
-                io.close()
-            end
+    function()
+        local v = io.read(1024)
+        if not v then
+            io.close()
+        end
             return v
         end
     )
@@ -76,24 +79,88 @@ if os.getenv("QUERY_STRING") ~= "" or os.getenv("REQUEST_METHOD") == "POST" then
     query = request:formvalue()
 end
 
+--- Return an error page to a browser.
+-- @tparam string msg Error message to be displayed
+--
 function error(msg)
     print("Content-type: text/plain\r")
     print("\r")
     print(msg)
 end
 
+--- @section API
+
+--- Returns a JSON document with basic node configuration.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `config`                  |
+--
+-- ## API Response
+--
+-- @example
+--   {
+--      "version": "meshchat_version",
+--      "node": "node_name",
+--      "zone": "meshchat_zone_name"
+--   }
+--
 function config()
     print("Content-type: application/json\r")
     print("\r")
-    print(string.format([[{"version":"%s","node":"%s","zone":"%s"}]], app_version, node_name(), zone_name()))
+
+    local settings = {
+        version = app_version,
+        protocol_verison = protocol_version,
+        node = node_name(),
+        zone = zone_name(),
+        default_channel = default_channel,
+        debug = debug,
+    }
+
+    print(json.stringify(settings))
 end
 
+--- Send a message to the MeshChat instance.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `send_message`            |
+-- | message   |    yes   | Message body                             |
+-- | call_sign |    yes   | Call sign of the sender                  |
+-- | channel   |    no    | Channel name to post message             |
+-- | epoch     |    no    | Timestamp specified as unixtime          |
+--
+-- @note message
+--   Needs to have newslines and double quotes escaped.
+--
+-- @note channel
+--   If not specified or set to empty string will post message to
+--   `Everything` channel
+--
+-- @note epoch
+--   If not specified, the current time on the MeshChat server will
+--   be used.
+--
+-- ## API Response
+--
+-- On a successful entry of the message into the database a success JSON
+-- document will be returned.
+--
+-- @example
+--   {
+--     "status": 200,
+--     "response": "OK"
+--   }
+--
 function send_message()
     print("Content-type: application/json\r")
     print("\r")
 
     local message = query.message:gsub("\n", "\\n"):gsub('"', '\\"'):gsub("\t", " ")
-
+    local id = query.id or hash();
     local epoch = os.time()
     if tonumber(query.epoch) > epoch then
         epoch = query.epoch
@@ -104,9 +171,10 @@ function send_message()
     local f = io.open(messages_db_file, "a")
     if not f then
         release_lock()
+        -- TODO return a proper error code on failure
         die("Cannot send message")
     end
-    f:write(hash() .. "\t" .. epoch .. "\t" .. message .. "\t" .. query.call_sign .. "\t" .. node_name() .. "\t" .. platform .. "\t" .. query.channel .. "\n")
+    f:write(id .. "\t" .. epoch .. "\t" .. message .. "\t" .. query.call_sign .. "\t" .. node_name() .. "\t" .. platform .. "\t" .. query.channel .. "\n")
     f:close()
 
     sort_and_trim_db()
@@ -117,6 +185,29 @@ function send_message()
     print([[{"status":200, "response":"OK"}]])
 end
 
+--- Return a list of message stored on the MeshChat instance.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `messages`                |
+-- | call_sign |    no    | Call sign of the requester               |
+-- | epoch     |    no    | Timestamp specified as unixtime          |
+-- | id        |    no    | Generated MeshChat ID                    |
+--
+-- ## API Response
+--
+-- @example
+--   {
+--     "id": "id_str",
+--     "epoch": epoch_time,
+--     "message": "message_text",
+--     "call_sign": "sending_call_sign",
+--     "node": "originating_node",
+--     "platform": "originating_node_platform",
+--     "channel": "channel"
+--   }
+--
 function messages()
 
     print("Content-type: application/json\r")
@@ -133,6 +224,7 @@ function messages()
 
     local node = node_name()
 
+    -- read in message DB and parse the contents
     local messages = {}
     for line in io.lines(messages_db_file)
     do
@@ -152,6 +244,8 @@ function messages()
 
     if tonumber(query.epoch) and query.call_sign then
         local users = {}
+
+        -- read the users status file
         if nixio.fs.stat(local_users_status_file) then
             for line in io.lines(local_users_status_file)
             do
@@ -162,11 +256,14 @@ function messages()
             end
         end
 
+        -- set the timestamp
         local epoch = os.time()
         if tonumber(query.epoch) > epoch then
             epoch = query.epoch
         end
 
+        -- rewrite user status file updating the timestamp for requesting call sign
+        -- query.id is the meshchat_id
         local f = io.open(local_users_status_file, "w")
         if f then
             local found_user = false
@@ -188,13 +285,29 @@ function messages()
 
     release_lock()
 
+    -- order messages according to time
     table.sort(messages, function(a, b) return a.epoch > b.epoch end)
 
-    output:write(luci.jsonc.stringify(messages))
+    output:write(json.stringify(messages))
     output:flush()
 
 end
 
+--- Return a JSON document describing the sync status.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `sync_status`             |
+--
+-- ## API Response
+--
+-- @example
+--   {
+--     "node": "node_name",
+--     "epoch": sync_time
+--   }
+--
 function sync_status()
     print("Content-type: application/json\r")
     print("\r")
@@ -217,9 +330,10 @@ function sync_status()
 
     table.sort(status, function(a, b) return a.epoch > b.epoch end)
 
-    print(luci.jsonc.stringify(status))
+    print(json.stringify(status))
 end
 
+--- Return a list of messages as text.
 function messages_raw()
     get_lock()
 
@@ -242,6 +356,7 @@ function messages_raw()
     end
 end
 
+--- Return the current MD5 has of the messages database.
 function messages_md5()
     get_lock()
 
@@ -254,6 +369,7 @@ function messages_md5()
     print(md5)
 end
 
+--- Package the raw messages as the messages.txt file.
 function messages_download()
     get_lock()
 
@@ -277,6 +393,7 @@ function messages_download()
     end
 end
 
+--- Return the list of users as raw text.
 function users_raw()
     get_lock()
 
@@ -299,6 +416,24 @@ function users_raw()
     end
 end
 
+--- Return a JSON document describing the logged in users.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `users`                   |
+--
+-- ## API Response
+--
+-- @example
+--   {
+--     "id": "id_str",
+--     "epoch": epoch_time,
+--     "call_sign": "sender_call_sign',
+--     "node": "originating_node",
+--     "platform": "originating_platform",
+--   }
+--
 function users()
     print("Content-type: application/json\r")
     print("\r")
@@ -337,9 +472,10 @@ function users()
 
     table.sort(users, function(a, b) return a.epoch > b.epoch end)
 
-    print(luci.jsonc.stringify(users))
+    print(json.stringify(users))
 end
 
+--- Return a list of files as plain text.
 function local_files_raw()
     get_lock()
 
@@ -352,7 +488,7 @@ function local_files_raw()
     for file in nixio.fs.dir(local_files_dir)
     do
         local stat = nixio.fs.stat(local_files_dir .. "/" .. file)
-        f:write(file .. "\t" .. name .. "\t" .. stat.size .. "\t" .. stat.mtime .. "\t" .. platform .. "\n")
+        f:write(file .. "\t" .. name .. "\t" .. stat.size .. "\t" .. stat.mtime .. platform .. "\n")
     end
     f:close()
 
@@ -372,6 +508,19 @@ function local_files_raw()
     nixio.fs.remove(tmp_file)
 end
 
+--- Return a specified file as a download.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `file_download`           |
+-- | file      |    yes   | Name of file to downlaod                 |
+--
+-- ## API Response
+--
+-- Returns a page as an octet-stream that is tagged as an attachment
+-- to cause the browser to receive the file as a download.
+--
 function file_download()
     local file = query.file
     local file_path = local_files_dir .. "/" .. file
@@ -399,6 +548,24 @@ function file_download()
     end
 end
 
+--- Return a JSON document describing the list of files.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `files`                   |
+--
+-- ## API Response
+--
+-- @example
+--   {
+--      "file": "filename",
+--      "epoch": modification_time,
+--      "size": file_size_in_bytes,
+--      "node": "originating_node",
+--      "platform": "originating_platform"
+--   }
+--
 function files()
     print("Content-type: application/json\r")
     print("\r")
@@ -445,12 +612,13 @@ function files()
 
     table.sort(files, function(a, b) return a.epoch > b.epoch end)
 
-    print(luci.jsonc.stringify({
+    print(json.stringify({
         stats = stats,
         files = files
     }))
 end
 
+--- Delete the specified file.
 function delete_file()
     nixio.fs.remove(local_files_dir .. "/" .. query.file)
     print("Content-type: application/json\r")
@@ -458,16 +626,18 @@ function delete_file()
     print([[{"status":200, "response":"OK"}]])
 end
 
+--- Return the current version string for the messages database.
 function messages_version()
     print("Content-type: text/plain\r")
     print("\r")
     print(get_messages_db_version())
 end
 
+--- Return a JSON document of the messages database.
 function messages_version_ui()
     print("Content-type: application/json\r")
     print("\r")
-    
+
     print(string.format([[{"messages_version":%s}]], get_messages_db_version()))
 
     get_lock()
@@ -487,6 +657,7 @@ function messages_version_ui()
         epoch = query.epoch
     end
 
+    -- TODO refactor here and messages function into a single code block
     local f = io.open(local_users_status_file, "w")
     if f then
         local found_user = false
@@ -508,10 +679,26 @@ function messages_version_ui()
     release_lock()
 end
 
+--- Return a JSON document describing all the hosts.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `hosts`                   |
+--
+-- ## API Response
+--
+-- @example
+--   {
+--      "ip": "ip_address",
+--      "hostname": "hostname",
+--      "node": "node_name"
+--   }
+--
 function hosts()
     print("Content-type: application/json\r")
     print("\r")
-    
+
     local node = node_name()
     local hosts = {}
     for line in io.lines("/tmp/dhcp.leases")
@@ -556,13 +743,14 @@ function hosts()
 
     table.sort(hosts, function(a, b) return a.hostname < b.hostname end)
 
-    print(luci.jsonc.stringify(hosts))
+    print(json.stringify(hosts))
 end
 
+--- Return a list of hosts as plain text.
 function hosts_raw()
     print("Content-type: application/json\r")
     print("\r")
-    
+
     local hosts = {}
     for line in io.lines("/tmp/dhcp.leases")
     do
@@ -589,6 +777,7 @@ function hosts_raw()
     end
 end
 
+--- Store a file into the file directory.
 function upload_file()
     local new_file_size = nixio.fs.stat(tmp_upload_dir .. "/file").size
 
@@ -615,6 +804,22 @@ function upload_file()
     end
 end
 
+--- Return a list of nodes running MeshChat as text.
+--
+-- ## API Parameters
+-- | Parameter | Required | Description                              |
+-- |-----------|----------|------------------------------------------|
+-- | action    |    yes   | Must be set to `meshchat_nodes`          |
+-- | zone_name |    yes   | MeshChat zone name                       |
+--
+-- ## API Response
+--
+-- The list of nodes and ports seperated by a tab.
+--
+-- @example
+--   node1      8080
+--   node2      8080
+--
 function meshchat_nodes()
     print("Content-type: text/plain\r")
     print("\r")
@@ -629,6 +834,11 @@ function meshchat_nodes()
     end
 end
 
+--- Return a JSON document of the action log.
+--
+-- Currently this call returns an empty list. In the future it will
+-- return a list of action log events.
+--
 function action_log()
     print("Content-type: application/json\r")
     print("\r")

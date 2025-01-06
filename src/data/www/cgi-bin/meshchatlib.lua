@@ -37,10 +37,21 @@
 require("nixio")
 require("uci")
 
+--- @module meshchatlib
+
+--- Exit the program with an error message.
+--
+-- @tparam string msg Message to display
+--
 function die(msg)
     os.exit(-1)
 end
 
+--- Execute a command and capture the output.
+--
+-- @tparam string cmd Command line to execute
+-- @treturn string stdout of the command
+--
 function capture(cmd)
     local f = io.popen(cmd)
     if not f then
@@ -51,10 +62,23 @@ function capture(cmd)
     return output
 end
 
+---
+-- Retrieve the current node name.
+--
+-- This function will interogate the UCI settings to retrieve the current
+-- node name stored in the `hsmmmesh` settings.
+--
+-- @treturn string Name of current node
+--
 function node_name()
     return uci.cursor("/etc/local/uci"):get("hsmmmesh", "settings", "node") or ""
 end
 
+---
+-- Retrieve the current MeshChat zone name that the node is operating under.
+--
+-- @treturn string Name of MeshChat zone
+--
 function zone_name()
     local services = uci.cursor("/etc/config.mesh"):get("setup", "services", "service") or {}
     for _, service in ipairs(services)
@@ -81,6 +105,18 @@ function release_lock()
     lock_fd:lock("ulock")
 end
 
+--- Generate the MD5 sum of a file.
+--
+-- This under the covers relies on `md5sum` and executes `md5sum` against
+-- the specified file.
+--
+-- @note
+--   There is no checking to determine if `md5sum` is installed or
+--   executable. In the future, this may change.
+--
+-- @tparam string file Path to file
+-- @treturn string Result of `md5sum` of the file
+--
 function file_md5(file)
     if not nixio.fs.stat(file) then
         return ""
@@ -116,6 +152,17 @@ function get_messages_version_file()
     return sum
 end
 
+--- Generate a unique hash.
+--
+-- Combine the current time (epoch time) and a randomly generated number
+-- between 0 - 99999 and run through `md5sum` to generate a random hash.
+--
+-- @note
+--   There is no checking to determine if `md5sum` is installed or
+--   executable. In the future, this may change.
+--
+-- @treturn string Generated hash value
+--
 function hash()
     return capture("echo " ..  os.time() .. math.random(99999) .. " | md5sum"):sub(1, 8)
 end
@@ -220,6 +267,12 @@ function node_list()
     return nodes
 end
 
+---
+-- Escape percent signs.
+--
+-- @tparam string str String to encode
+-- @treturn string Encoded string
+--
 function str_escape(str)
-	return str:gsub("%(", "%%("):gsub("%)", "%%)"):gsub("%%", "%%%%"):gsub("%.", "%%."):gsub("%+", "%%+"):gsub("-", "%%-"):gsub("%*", "%%*"):gsub("%[", "%%["):gsub("%?", "%%?"):gsub("%^", "%%^"):gsub("%$", "%%$")         
+	return str:gsub("%(", "%%("):gsub("%)", "%%)"):gsub("%%", "%%%%"):gsub("%.", "%%."):gsub("%+", "%%+"):gsub("-", "%%-"):gsub("%*", "%%*"):gsub("%[", "%%["):gsub("%?", "%%?"):gsub("%^", "%%^"):gsub("%$", "%%$")
 end
