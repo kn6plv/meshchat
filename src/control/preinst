@@ -4,4 +4,16 @@
 
 mkdir -p /www/meshchat
 
+# if there is not a meshchat_local.lua, then prepare one
+if [ ! -f /www/cgi-bin/meshchat_local.lua ]; then
+    if [ -f /www/cgi-bin/meshchatconfig.lua ]; then
+        cp /www/cgi-bin/meshchatconfig.lua /www/cgi-bin/meshchat_local.lua
+
+        # remove vars that should not be in meshchat_local.lua
+        sed -i "/^protocol_version/d; /^app_version/d" /www/cgi-bin/meshchat_local.lua
+    else
+        touch /www/cgi-bin/meshchat_local.lua
+    fi
+fi
+
 exit 0

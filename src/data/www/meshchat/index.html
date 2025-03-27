@@ -5,7 +5,7 @@
             Mesh Chat
         </title>
         <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0, user-scalable=no"/>
-        <meta name="robots" content="noindex"> 
+        <meta name="robots" content="noindex">
         <link href="skeleton.css" rel="stylesheet"/>
         <link href="style.css" rel="stylesheet"/>
         <meta http-equiv="cache-control" content="max-age=0" />
@@ -78,13 +78,13 @@
                     <strong>
                         Mesh Chat
                     </strong>
-                </div>                
+                </div>
             </div>
             <div class="row">
-                <div class="six columns center" id="zone">                    
+                <div class="six columns center" id="zone">
                 </div>
                 <div class="six columns center" id="node">
-                </div>                
+                </div>
             </div>
             <div class="row updated">
                 <div class="six columns center" id="callsign">
@@ -125,15 +125,15 @@
                                 <select id="send-channel">
                                     <option value="">
                                         Everything
-                                    </option>                                    
+                                    </option>
                                 </select>
                                 <button id="submit-message" class="button-primary">
                                     Send
-                                </button>                            
+                                </button>
                             </form>
                         </div>
                     </div>
-                </div>                
+                </div>
                 <div class="six columns">
                     <div class="panel users-panel" id="users-panel">
                         <div class="panel-header">
@@ -154,13 +154,13 @@
                                         </th>
                                     </tr>
                                 </thead>
-                                <tbody id="users-table">                                    
+                                <tbody id="users-table">
                                 </tbody>
                             </table>
                         </div>
                     </div>
                 </div>
-            </div>        
+            </div>
             <div class="row">
                 <div class="tweleve columns">
                     <div class="panel">
@@ -173,11 +173,11 @@
                                 &nbsp;
                                 &nbsp;
                                 </span>
-                                Channel:                                
+                                Channel:
                                 <select id="channels">
-                                    <option value="">
+                                    <option value="" selected>
                                         Everything
-                                    </option>                                    
+                                    </option>
                                 </select>
                             </div>
                         </div>
@@ -209,9 +209,10 @@
                                     <col style="width:15%">
                                     <col style="width:15%">
                                     <col style="width:15%">
-                                </colgroup>  
+                                </colgroup>
                             -->
-                                <tbody id="message-table">                                    
+                                <tbody id="message-table">
+                                    <tr><td>Loading messages....</td></tr>
                                 </tbody>
                             </table>
                         </div>
@@ -235,9 +236,13 @@
         </script>
         <script src="js.cookie.js">
         </script>
+        <script src="md5.js">
+        </script>
         <script src="shared.js">
         </script>
+        <script src="messages.js">
+        </script>
         <script src="chat.js">
-        </script>        
+        </script>
     </body>
 </html>
