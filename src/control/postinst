@@ -1,9 +1,6 @@
 #!/bin/sh
 
-uci -c /etc/config.mesh show setup.services | grep "|8080|meshchat" &> /dev/null
-PRESENT=$?
-
-if [ "$PRESENT" != 0 ]; then
+if [ "$(uci -q -c /etc/config.mesh show setup.services | grep '|8080|meshchat')" = "" ]; then
   RAND=$(awk 'BEGIN{srand();print int(rand()*10000) }')
   uci -c /etc/config.mesh add_list setup.services.service="MeshChat-$RAND [chat]|1|http|$(uname -n)|8080|meshchat"
   uci -c /etc/config.mesh commit setup
