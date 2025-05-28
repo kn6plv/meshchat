@@ -85,7 +85,7 @@ extra_nodes                = {}
 --- MeshChat protocol version
 -- @type string
 protocol_version           = "1.02"
-app_version                = "2.15"
+app_version                = "2.16"
 default_channel            = ""
 
 require("meshchat_local")

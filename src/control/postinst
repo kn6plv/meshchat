@@ -6,6 +6,10 @@ if [ "$(uci -q -c /etc/config.mesh show setup.services | grep '|8080|meshchat')"
   uci -c /etc/config.mesh commit setup
 fi
 
+# Hack for missing but unused lua file
+mkdir -p /usr/lib/lua/luci/template
+touch /usr/lib/lua/luci/template/parser.lua
+
 /usr/local/bin/node-setup &> /dev/null
 /usr/local/bin/restart-services.sh &> /dev/null
 
