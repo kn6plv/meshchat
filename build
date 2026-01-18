@@ -5,13 +5,13 @@ find . -name '*~' -delete
 
 ### Build AREDN package
 export COPYFILE_DISABLE=1
-export VERSION=2.16
+export VERSION=2.17
 
 # Main
 rm -rf data.tar.gz control.tar.gz
 cd src/data
 sed -i "s/^app_version.*$/app_version                = \"${VERSION}\"/" www/cgi-bin/meshchatconfig.lua
-tar cf ../../data.tar `find . -type f | grep -v DS_Store | grep -v .pl | grep -v .pm`
+tar cf ../../data.tar `find . -type f | grep -v DS_Store`
 cd ../control
 sed -i "s/^Version: .*$/Version: ${VERSION}/" control
 tar cfz ../../control.tar.gz .
@@ -22,7 +22,7 @@ COPYFILE_DISABLE=1 tar cfz meshchat_${VERSION}_all.ipk control.tar.gz data.tar.g
 # API-only
 rm -rf data.tar.gz control.tar.gz
 cd apionly/data
-tar cf ../../data.tar `find . -type f | grep -v DS_Store | grep -v .pl | grep -v .pm`
+tar cf ../../data.tar `find . -type f | grep -v DS_Store`
 cd ../control
 sed -i "s/^Version: .*$/Version: ${VERSION}/" control
 tar cfz ../../control.tar.gz .
