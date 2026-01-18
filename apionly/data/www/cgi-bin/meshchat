@@ -51,21 +51,12 @@ print("Content-type: text/plain\r")
 print("\r")
 if query.action == "meshchat_nodes" then
     local pattern = "http://(%S+):(%d+)/meshchat|tcp|" .. str_escape(query.zone_name) .. "%s"
-    if nixio.fs.stat("/var/run/services_olsr") then
-        for line in io.lines("/var/run/services_olsr")
-        do
-            local node, port = line:match(pattern)
-            if node and port then
-                print(node .. "\t" .. port)
-            end
-        end
-    end
     if nixio.fs.stat("/var/run/arednlink/services") then
         for file in nixio.fs.dir("/var/run/arednlink/services")
         do
             for line in io.lines("/var/run/arednlink/services/" .. file)
             do
-                local node, port = line:match(pattern)
+                local node, port = (line .. " "):match(pattern)
                 if node and port then
                     print(node .. "\t" .. port)
                 end

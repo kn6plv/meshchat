@@ -241,29 +241,12 @@ function node_list()
 
     local nodes = {}
     local pattern = "http://(%S+):(%d+)/meshchat|tcp|" .. str_escape(zone) .. "%s"
-
-    if nixio.fs.stat("/var/run/services_olsr") then
-        for line in io.lines("/var/run/services_olsr")
-        do
-            local node, port = line:match(pattern)
-            if node and port then
-                node = node:lower()
-                if node ~= local_node then
-                    nodes[#nodes + 1] = {
-                        platform = (port == "8080" and "node" or "pi"),
-                        node = node,
-                        port = port
-                    }
-                end
-            end
-        end
-    end
     if nixio.fs.stat("/var/run/arednlink/services") then
         for file in nixio.fs.dir("/var/run/arednlink/services")
         do
             for line in io.lines("/var/run/arednlink/services/" .. file)
             do
-                local node, port = line:match(pattern)
+                local node, port = (line .. " "):match(pattern)
                 if node and port then
                     node = node:lower()
                     if node ~= local_node then
