@@ -63,7 +63,7 @@ if os.getenv("QUERY_STRING") ~= "" or os.getenv("REQUEST_METHOD") == "POST" then
         function(meta, chunk, eof)
             if not fp then
                 if meta and meta.file then
-                    uploadfilename = meta.file
+                    uploadfilename = nixio.fs.basename(meta.file)
                 end
                 nixio.fs.mkdir(tmp_upload_dir)
                 fp = io.open(tmp_upload_dir .. "/file", "w")
@@ -522,10 +522,11 @@ end
 -- to cause the browser to receive the file as a download.
 --
 function file_download()
-    local file = query.file
-    local file_path = local_files_dir .. "/" .. file
+    local filename = nixio.fs.basename(query.file or "")
+    local file_path = local_files_dir .. "/" .. filename
 
-    if file == "" or not nixio.fs.stat(file_path) then
+    -- Validate filename is not empty and file exists
+    if filename == "" or filename == "." or filename == ".." or not nixio.fs.stat(file_path) then
         error("no file")
         return
     end
@@ -538,7 +539,7 @@ function file_download()
     release_lock()
 
     print("Content-MD5: " .. md5 .. "\r")
-    print("Content-Disposition: attachment; filename=\"" .. file .. "\";\r")
+    print("Content-Disposition: attachment; filename=\"" .. filename .. "\";\r")
     print("Content-type: application/octet-stream\r")
     print("\r")
 
@@ -620,7 +621,16 @@ end
 
 --- Delete the specified file.
 function delete_file()
-    nixio.fs.remove(local_files_dir .. "/" .. query.file)
+    local filename = nixio.fs.basename(query.file or "")
+    local file_path = local_files_dir .. "/" .. filename
+
+    -- Validate filename is not empty and file exists
+    if filename == "" or filename == "." or filename == ".." or not nixio.fs.stat(file_path) then
+        error("no file")
+        return
+    end
+
+    nixio.fs.remove(file_path)
     print("Content-type: application/json\r")
     print("\r")
     print([[{"status":200, "response":"OK"}]])
