@@ -17,7 +17,11 @@ $(function() {
         file = event.target.files[0];
         console.log(event.target.files[0].size);
         if (event.target.files[0].size > free_space) {
-            ohSnap('Not enough free space for your file, delete some files first and try again', 'red');
+            Swal.fire({
+                icon: 'warning',
+                title: 'No Space',
+                text: 'Not enough free space for your file, delete some files first and try again'
+            });
             $('#upload-file').val('');
             event.preventDefault();
         }
@@ -53,15 +57,27 @@ $(function() {
             },
             success: function(data) {
                 if (data.status == 200) {
-                    ohSnap('File uploaded', 'green');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Uploaded',
+                        text: 'File uploaded',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
                 } else {
-                    ohSnap(data.response, 'red');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Upload Failed',
+                        text: data.response
+                    });
                 }
                 $('#upload-file').val('');
                 load_files();
             },
             error: function(data, textStatus, errorThrown) {
-                ohSnap('File upload error');
+                Swal.fire({ icon: 'error', title: 'Error', text: 'File upload error' });
             },
             complete: function(jqXHR, textStatus) {
                 $('progress').addClass('hidden');
@@ -132,11 +148,23 @@ function load_files() {
                 url: '/cgi-bin/meshchat?action=delete_file&file=' + encodeURIComponent($(this).attr('file-name')),
                 type: "GET",
                 success: function(data) {
-                    ohSnap('File deleted', 'green');
+                    Swal.fire({
+                        icon: 'success',
+                        title: 'Deleted',
+                        text: 'File deleted',
+                        timer: 2000,
+                        showConfirmButton: false,
+                        toast: true,
+                        position: 'top-end'
+                    });
                     load_files();
                 },
                 error: function(data, textStatus, errorThrown) {
-                    ohSnap('File delete error: ' + data, 'red');
+                    Swal.fire({
+                        icon: 'error',
+                        title: 'Delete Error',
+                        text: 'File delete error: ' + data
+                    });
                 }
             });
         });

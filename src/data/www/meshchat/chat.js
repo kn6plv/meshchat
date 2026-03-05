@@ -17,7 +17,14 @@ $(function() {
 
 function monitor_last_update() {
     var secs = epoch() - last_messages_update;
-    $('#last-update').html('<strong>Updated:</strong> ' + secs + ' seconds ago');
+    $('#last-update').html('(' + secs + 's ago)');
+}
+
+function scrollToBottom() {
+    var scrollArea = $('#messages-scroll-area');
+    if(scrollArea.length > 0) {
+        scrollArea.scrollTop(scrollArea[0].scrollHeight);
+    }
 }
 
 function update_messages(reason=Messages.MSG_UPDATE) {
@@ -32,7 +39,10 @@ function update_messages(reason=Messages.MSG_UPDATE) {
 
     // update the message table
     let html = messages.render($('#channels').val(), $('#search').val());
-    if (html) $('#message-table').html(html);
+    if (html) {
+        $('#message-table').html(html);
+        scrollToBottom();
+    }
     last_messages_update = epoch();
 }
 
@@ -106,7 +116,7 @@ function start_chat() {
             $('#node').html('<strong>Node:</strong> ' + data.node);
             $('#zone').html('<strong>Zone:</strong> ' + data.zone);
             $('#callsign').html('<strong>Call Sign:</strong> ' + Cookies.get('meshchat_call_sign'));
-            $('#copyright').html('Mesh Chat v' + data.version + ' Copyright &copy; ' + new Date().getFullYear() + ' <a href="http://www.trevorsbench.com">Trevor Paskett - K7FPV</a> <small>(Lua by KN6PLV)</small>');
+            $('#copyright').html('Mesh Chat v' + data.version + ' Copyright &copy; ' + new Date().getFullYear() + ' <a href="http://www.trevorsbench.com">Trevor Paskett - K7FPV</a> <small>(Lua by KN6PLV, remix by TA2DMX)</small>');
 
             if ("default_channel" in data) {
                 default_channel = data.default_channel;
@@ -159,7 +169,7 @@ function meshchat_init() {
         e.preventDefault();
         if ($('#message').val().length == 0) return;
 
-        ohSnapX();
+        // ohSnapX(); removed as SweetAlert handles alerts differently
 
         // disable message sending box
         $(this).prop("disabled", true);
@@ -177,7 +187,15 @@ function meshchat_init() {
             // sent
             (sent) => {
                 $('#message').val('');
-                ohSnap('Message sent', 'green');
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Sent',
+                    text: 'Message sent',
+                    timer: 2000,
+                    showConfirmButton: false,
+                    toast: true,
+                    position: 'top-end'
+                });
                 update_messages(Messages.NEW_MSG);
 
                 // clear out new channel box in case it was used and
@@ -188,7 +206,11 @@ function meshchat_init() {
             },
             // error
             (err_msg) => {
-                ohSnap(err_msg, 'red', {time: '30000'});
+                Swal.fire({
+                    icon: 'error',
+                    title: 'Error',
+                    text: err_msg
+                });
             }
         ).finally(() => {
             // change the channel selector to the channel the message was
@@ -242,9 +264,10 @@ function meshchat_init() {
         }
     });
 
-    // process a CTRL <ENTER> to send a message
+    // process <ENTER> to send a message, <SHIFT>+<ENTER> for new line
     $('#message').keydown(function (e) {
-        if ((e.keyCode == 10 || e.keyCode == 13) && e.ctrlKey) {
+        if ((e.keyCode == 10 || e.keyCode == 13) && !e.shiftKey) {
+            e.preventDefault();
             $("#submit-message").trigger( "click" );
         }
     });
@@ -285,27 +308,34 @@ function load_users() {
                 // user heartbeat timeout > 4 mins
                 if ((epoch() - entry.epoch) > 240) continue;
 
+                var timeStr = date.getHours() + ':' + (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes());
+                var activeStatus = 'Last seen: ' + timeStr;
+
                 // user heartbeat > 2 mins, expiring
-                if ((epoch() - entry.epoch) > 120) {
-                    html += '<tr class="grey-background">';
-                } else {
-                    html += '<tr>';
-                }
+                var itemClass = (epoch() - entry.epoch) > 120 ? 'user-item inactive' : 'user-item';
+
+                html += '<div class="' + itemClass + '">';
+                html += '  <div class="user-main">';
+                
+                // Content for top line (Callsign)
+                var callsignHtml = '<span class="user-callsign">' + entry.call_sign + '</span>';
+                
+                // Content for bottom line (Node)
+                var nodeUrl = (entry.platform == 'node') ? 
+                              'http://' + aredn_domain(entry.node) + ':8080' : 
+                              'http://' + aredn_domain(entry.node);
+                var nodeLink = '(<a href="' + nodeUrl + '" target="_blank" class="user-node-link">' + entry.node + '</a>)';
+                var nodeHtml = '<span class="user-node">' + nodeLink + '</span>';
 
                 if (enable_video == 0) {
-                    html += '<td>' + entry.call_sign + '</td>';
+                    html += callsignHtml + nodeHtml;
                 } else {
-                    html += '<td><a href="' + entry.id + '" onclick="start_video(\'' + entry.id + '\');return false;">' + entry.call_sign + '</td>';
+                    html += '<a href="' + entry.id + '" onclick="start_video(\'' + entry.id + '\');return false;">' + callsignHtml + '</a>' + nodeHtml;
                 }
-
-                if (entry.platform == 'node') {
-                    html += '<td><a href="http://' + aredn_domain(entry.node) + ':8080" target="_blank">' + entry.node + '</a></td>';
-                } else {
-                    html += '<td><a href="http://' + aredn_domain(entry.node) + '" target="_blank">' + entry.node + '</a></td>';
-                }
-
-                html += '<td>' + format_date(date) + '</td>';
-                html += '</tr>';
+                
+                html += '  </div>';
+                html += '  <div class="user-activity">' + activeStatus + '</div>';
+                html += '</div>';
 
                 count++;
             }

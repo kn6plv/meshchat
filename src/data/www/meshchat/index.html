@@ -1,248 +1,184 @@
-<!DOCTYPE html>
+<!doctype html>
 <html>
-    <head>
-        <title>
-            Mesh Chat
-        </title>
-        <meta name="viewport" content="width=device-width, initial-scale=1.0 maximum-scale=1.0, user-scalable=no"/>
-        <meta name="robots" content="noindex">
-        <link href="skeleton.css" rel="stylesheet"/>
-        <link href="style.css" rel="stylesheet"/>
-        <meta http-equiv="cache-control" content="max-age=0" />
-        <meta http-equiv="cache-control" content="no-cache" />
-        <meta http-equiv="expires" content="0" />
-        <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
-        <meta http-equiv="pragma" content="no-cache" />
-    </head>
-    <body class="has-docked-nav">
-        <div class="container hidden" id="call-sign-container">
-            <form>
-                <div class="row">
-                    <div class="four columns">
-                        &nbsp;
-                    </div>
-                    <div class="four columns">
-                        <label for="call-sign">
-                            Your Call Sign
-                        </label>
-                        <input class="u-full-width" type="text" placeholder="" id="call-sign"/>
-                    </div>
-                    <div class="four columns">
-                        &nbsp;
-                    </div>
-                </div>
-                <div class="row" id="login-row">
-                    <div class="four columns">
-                        &nbsp;
-                    </div>
-                    <div class="four columns">
-                        <input id="submit-call-sign" class="button-primary" type="submit" value="Login"/>
-                    </div>
-                    <div class="four columns">
-                        &nbsp;
-                    </div>
-                </div>
-            </form>
+  <head>
+    <title>Mesh Chat</title>
+    <meta
+      name="viewport"
+      content="width=device-width, initial-scale=1.0 maximum-scale=1.0, user-scalable=no"
+    />
+    <meta name="robots" content="noindex" />
+    <link href="skeleton.css" rel="stylesheet" />
+    <link href="style.css" rel="stylesheet" />
+    <meta http-equiv="cache-control" content="max-age=0" />
+    <meta http-equiv="cache-control" content="no-cache" />
+    <meta http-equiv="expires" content="0" />
+    <meta http-equiv="expires" content="Tue, 01 Jan 1980 1:00:00 GMT" />
+    <meta http-equiv="pragma" content="no-cache" />
+  </head>
+  <body class="has-docked-nav">
+    <div id="call-sign-container" class="hidden">
+      <div class="login-card">
+        <h3>MeshChat Login</h3>
+        <form>
+          <label for="call-sign">Your Call Sign</label>
+          <input
+            class="u-full-width"
+            type="text"
+            placeholder="Enter Call Sign"
+            id="call-sign"
+          />
+          <input
+            id="submit-call-sign"
+            class="button-primary u-full-width"
+            type="submit"
+            value="Login"
+          />
+        </form>
+      </div>
+    </div>
+    <div class="container hidden" id="chat-container">
+      <div class="navbar-spacer"></div>
+
+      <nav class="navbar">
+        <div class="container">
+          <ul class="navbar-list">
+            <li class="navbar-item">
+              <a
+                class="navbar-link branding-link"
+                href="https://github.com/kn6plv/meshchat"
+                ><strong>MeshChat</strong></a
+              >
+            </li>
+            <li class="navbar-item">
+              <a class="navbar-link" href="/meshchat/"> Chat </a>
+            </li>
+            <li class="navbar-item">
+              <a class="navbar-link" href="/meshchat/files.html"> Files </a>
+            </li>
+            <li class="navbar-item">
+              <a class="navbar-link" href="/meshchat/status.html"> Status </a>
+            </li>
+            <li class="navbar-item logout">
+              <a class="navbar-link" href="#" id="logout"> Logout </a>
+            </li>
+          </ul>
         </div>
-        <div class="container hidden" id="chat-container">
-            <div class="navbar-spacer">
-            </div>
-            <nav class="navbar">
-                <div class="container">
-                    <ul class="navbar-list">
-                        <li class="navbar-item">
-                            <a class="navbar-link" href="/meshchat/">
-                                Chat
-                            </a>
-                        </li>
-                        <li class="navbar-item">
-                            <a class="navbar-link" href="/meshchat/files.html">
-                                Files
-                            </a>
-                        </li>
-                        <li class="navbar-item">
-                            <a class="navbar-link" href="/meshchat/status.html">
-                                Status
-                            </a>
-                        </li>
-                        <li class="navbar-item logout">
-                            <a class="navbar-link" href="#" id="logout">
-                                Logout
-                            </a>
-                        </li>
-                    </ul>
-                </div>
-            </nav>
-            <div class="row info">
-                <div class="tweleve columns center" id="version">
-                    <strong>
-                        Mesh Chat
-                    </strong>
-                </div>
-            </div>
-            <div class="row">
-                <div class="six columns center" id="zone">
-                </div>
-                <div class="six columns center" id="node">
-                </div>
-            </div>
-            <div class="row updated">
-                <div class="six columns center" id="callsign">
-                </div>
-                <div class="six columns center">
-                    <span id="last-update">
-                    <strong>
-                        Updated:
-                    </strong>
-                    0 secs ago
-                    </span>
-                    <!-- <div class="pull-right" id="message-expand">&#x25BC;</div> -->
-                </div>
-            </div>
-            <div class="row">
-                <div class="tweleve columns">
-                    <div id="ohsnap">
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="six columns">
-                    <div class="panel send-message-panel" id="message-panel">
-                        <div class="panel-header">
-                            Send a Message
-                        </div>
-                        <div class="panel-body" id="message-panel-body">
-                            <form>
-                                <label for="message" id="new-message-label">
-                                    New Message
-                                </label>
-                                <textarea maxlength="1000" class="u-full-width" placeholder="Enter message here" id="message">
-                                </textarea>
-                                <label for="send-channel" id="send-channel-label">
-                                    Channel:
-                                </label>
-                                <input type="text" value="" id="new-channel" placeholder="Enter new channel name" class="hidden">
-                                <select id="send-channel">
-                                    <option value="">
-                                        Everything
-                                    </option>
-                                </select>
-                                <button id="submit-message" class="button-primary">
-                                    Send
-                                </button>
-                            </form>
-                        </div>
-                    </div>
-                </div>
-                <div class="six columns">
-                    <div class="panel users-panel" id="users-panel">
-                        <div class="panel-header">
-                            Mesh Chat Users<span class="pull-right" id="users-count"></span>
-                        </div>
-                        <div class="panel-body users-panel-body" id="users-panel-body">
-                            <table class="u-full-width remote" id="remote-users">
-                                <thead>
-                                    <tr>
-                                        <th>
-                                            Call Sign
-                                        </th>
-                                        <th>
-                                            Node
-                                        </th>
-                                        <th>
-                                            Last Seen
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <tbody id="users-table">
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="tweleve columns">
-                    <div class="panel">
-                        <div class="panel-header">
-                            Messages
-                            <div class="pull-right">
-                                <span id="search-span">Search:
-                                <input type="text" value="" id="search" placeholder="Enter search">
-                                &nbsp;
-                                &nbsp;
-                                &nbsp;
-                                </span>
-                                Channel:
-                                <select id="channels">
-                                    <option value="" selected>
-                                        Everything
-                                    </option>
-                                </select>
-                            </div>
-                        </div>
-                        <div class="panel-body">
-                            <table class="u-full-width message" id="message-parent-table">
-                                <thead id="message-header">
-                                    <tr>
-                                        <th>
-                                            Time
-                                        </th>
-                                        <th>
-                                            Message
-                                        </th>
-                                        <th>
-                                            Call Sign
-                                        </th>
-                                        <th class="col_channel">
-                                            Channel
-                                        </th>
-                                        <th class="col_node">
-                                            Node
-                                        </th>
-                                    </tr>
-                                </thead>
-                                <!--
-                                <colgroup>
-                                    <col style="width:10%">
-                                    <col style="width:45%">
-                                    <col style="width:15%">
-                                    <col style="width:15%">
-                                    <col style="width:15%">
-                                </colgroup>
-                            -->
-                                <tbody id="message-table">
-                                    <tr><td>Loading messages....</td></tr>
-                                </tbody>
-                            </table>
-                        </div>
-                    </div>
-                </div>
-            </div>
-            <div class="row">
-                <div class="tweleve columns center">
-                    <div id="copyright">
-                        Mesh Chat Copyright &copy;
-                        <a href="http://www.trevorsbench.com">
-                            Trevor Paskett - K7FPV
-                        </a>
-                    </div>
-                </div>
-            </div>
+      </nav>
+      <!-- <div class="header-info-wrapper">
+        <div class="header-info-block">
+          <div id="zone"></div>
         </div>
-        <script src="jquery-2.2.0.min.js">
-        </script>
-        <script src="ohsnap.js">
-        </script>
-        <script src="js.cookie.js">
-        </script>
-        <script src="md5.js">
-        </script>
-        <script src="shared.js">
-        </script>
-        <script src="messages.js">
-        </script>
-        <script src="chat.js">
-        </script>
-    </body>
+        <div class="header-info-block">
+          <div id="node"></div>
+        </div>
+        Hidden for JS compatibility
+        <div id="callsign" style="display: none"></div>
+      </div> -->
+
+      <div class="row">
+        <div class="tweleve columns">
+          <div id="ohsnap"></div>
+        </div>
+      </div>
+      <div class="chat-app-wrapper">
+        <div class="chat-sidebar">
+          <div class="panel users-panel" id="users-panel">
+            <div class="panel-header">
+              Mesh Chat Users<span class="pull-right" id="users-count"></span>
+            </div>
+            <div class="panel-body users-panel-body" id="users-panel-body">
+              <div id="users-table" class="modern-user-list">
+                <!-- User items will be rendered here by chat.js -->
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="chat-main">
+          <div class="panel chat-messages-panel">
+            <div class="panel-header">
+              <div>
+                Messages
+                <small
+                  id="last-update"
+                  style="font-weight: normal; opacity: 0.8"
+                ></small>
+              </div>
+              <div class="pull-right">
+                <span id="search-span"
+                  >Search:
+                  <input
+                    type="text"
+                    value=""
+                    id="search"
+                    placeholder="Enter search"
+                  />
+                  &nbsp;&nbsp;&nbsp;
+                </span>
+                Channel:
+                <select id="channels">
+                  <option value="" selected>Everything</option>
+                </select>
+              </div>
+            </div>
+            <div
+              class="panel-body messages-scroll-area"
+              id="messages-scroll-area"
+            >
+              <div id="message-table" class="chat-container">
+                <!-- Messages will be rendered as bubbles here by messages.js -->
+                <div class="loading-messages">Loading messages....</div>
+              </div>
+            </div>
+          </div>
+
+          <div class="panel send-message-panel" id="message-panel">
+            <div class="panel-body" id="message-panel-body">
+              <form class="send-message-form">
+                <textarea
+                  maxlength="1000"
+                  class="u-full-width"
+                  placeholder="Type a message (Enter to send, Shift+Enter for new line)"
+                  id="message"
+                ></textarea>
+
+                <div class="send-controls">
+                  <div class="channel-selector">
+                    <select id="send-channel">
+                      <option value="">Everything</option>
+                    </select>
+                    <input
+                      type="text"
+                      value=""
+                      id="new-channel"
+                      placeholder="New channel"
+                      class="hidden"
+                    />
+                  </div>
+                  <button id="submit-message" class="button-primary send-btn">
+                    Send
+                  </button>
+                </div>
+              </form>
+            </div>
+          </div>
+        </div>
+      </div>
+      <div class="row">
+        <div class="tweleve columns center">
+          <div id="copyright">
+            Mesh Chat Copyright &copy;
+            <a href="http://www.trevorsbench.com"> Trevor Paskett - K7FPV </a>
+          </div>
+        </div>
+      </div>
+    </div>
+    <script src="jquery-2.2.0.min.js"></script>
+    <script src="sweetalert2.all.min.js"></script>
+    <script src="js.cookie.js"></script>
+    <script src="md5.js"></script>
+    <script src="shared.js"></script>
+    <script src="messages.js"></script>
+    <script src="chat.js"></script>
+  </body>
 </html>
