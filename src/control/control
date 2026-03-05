@@ -5,6 +5,6 @@ Provides:
 Source: package/meshchat
 Section: net
 Priority: optional
-Maintainer: Tim Wilkinson (KN6PLV) and Trevor Paskett (K7FPV)
+Maintainer: Tim Wilkinson (KN6PLV) and Trevor Paskett (K7FPV) and Ugur Altinsoy (TA2DMX)
 Architecture: all
 Description: P2P distributed chat for mesh networks
