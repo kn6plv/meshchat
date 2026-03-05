@@ -4,12 +4,12 @@ var call_sign            = 'NOCALL';
 var enable_video         = 0;
 
 var messages         = new Messages();
-let alert            = new Audio('alert.mp3');
+var alert_sound      = new Audio('alert.mp3');
 
-let context = {
+var context = {
     config_loaded: false,
-    debug: true,            // let startup funcs show debug
-}
+    debug: true,
+};
 
 $(function() {
     meshchat_init();
@@ -27,18 +27,10 @@ function scrollToBottom() {
     }
 }
 
-function update_messages(reason=Messages.MSG_UPDATE) {
-    if (reason != Messages.MSG_UPDATE) return;
-    try {
-        var caller = (new Error()).stack.split("\n")[3].split("/")[0];
-    }
-    catch (TypeError) {
-        var caller = "unknown_caller";
-    }
-    console.debug(caller + "->update_messages(reason=MSG_UPDATE)");
-
-    // update the message table
-    let html = messages.render($('#channels').val(), $('#search').val());
+function update_messages(reason) {
+    if (reason && reason != Messages.MSG_UPDATE) return;
+    
+    var html = messages.render($('#channels').val(), $('#search').val());
     if (html) {
         $('#message-table').html(html);
         scrollToBottom();
@@ -48,38 +40,23 @@ function update_messages(reason=Messages.MSG_UPDATE) {
 
 function new_messages(reason) {
     if (reason != Messages.NEW_MSG) return;
-    try {
-        var caller = (new Error()).stack.split("\n")[3].split("/")[0];
-    }
-    catch (TypeError) {
-        var caller = "unknown_caller";
-    }
-    console.debug(caller + "->new_messages(reason=NEW_MSG)");
-    alert.play();
+    alert_sound.play();
 }
 
 function update_channels(reason) {
     if (reason != Messages.CHAN_UPDATE) return;
-    try {
-        var caller = (new Error()).stack.split("\n")[3].split("/")[0];
-    }
-    catch (TypeError) {
-        var caller = "unknown_caller";
-    }
-    console.debug(caller + "->update_channels(reason=CHAN_UPDATE)");
 
-    let msg_refresh      = false;
-    let channels         = messages.channels().sort();
-    let channel_filter   = $('#channels').val();
-    let cur_send_channel = $('#send-channel').val();
-    // null signals a new channel was just created
+    var msg_refresh      = false;
+    var channels         = messages.channels().sort();
+    var channel_filter   = $('#channels').val();
+    var cur_send_channel = $('#send-channel').val();
+
     if (cur_send_channel == null) {
         channel_filter = messages.current_channel();
         cur_send_channel = messages.current_channel();
         msg_refresh = true;
     }
 
-    // clear channel selection boxes
     $('#send-channel').find('option').remove().end();
     $('#channels').find('option').remove().end();
 
@@ -87,12 +64,12 @@ function update_channels(reason) {
         select.append("<option value='"+value+"'>"+title+"</option>");
     }
 
-    // Add static channels to channel selection boxes
     add_option($('#send-channel'), "Everything", "");
     add_option($('#send-channel'), "Add New Channel", "Add New Channel");
     add_option($('#channels'), "Everything", "");
 
-    for (var chan of channels) {
+    for (var i = 0; i < channels.length; i++) {
+        var chan = channels[i];
         if (chan != "") {
             add_option($('#send-channel'), chan, chan);
             add_option($('#channels'), chan, chan);
@@ -105,174 +82,96 @@ function update_channels(reason) {
 }
 
 function start_chat() {
-    debug("start_chat()");
+    $.getJSON('/cgi-bin/meshchat?action=config', function(data) {
+        config = data;
+        document.title = 'Mesh Chat v' + data.version;
+        $('#node').html('<strong>Node:</strong> ' + data.node);
+        $('#zone').html('<strong>Zone:</strong> ' + data.zone);
+        $('#copyright').html('Mesh Chat v' + data.version + ' Copyright &copy; ' + new Date().getFullYear() + ' <a href="http://www.trevorsbench.com">Trevor Paskett - K7FPV</a> <small>(remix by TA2DMX)</small>');
 
-    // wait until the configuration is fully loaded
-    $.getJSON('/cgi-bin/meshchat?action=config',
-        (data) => {
-            config = data;
-            document.title = 'Mesh Chat v' + data.version;
-            $('#version').html('<strong>Mesh Chat v' + data.version + '</strong>');
-            $('#node').html('<strong>Node:</strong> ' + data.node);
-            $('#zone').html('<strong>Zone:</strong> ' + data.zone);
-            $('#callsign').html('<strong>Call Sign:</strong> ' + Cookies.get('meshchat_call_sign'));
-            $('#copyright').html('Mesh Chat v' + data.version + ' Copyright &copy; ' + new Date().getFullYear() + ' <a href="http://www.trevorsbench.com">Trevor Paskett - K7FPV</a> <small>(Lua by KN6PLV, remix by TA2DMX)</small>');
-
-            if ("default_channel" in data) {
-                default_channel = data.default_channel;
-                $('#send-channel').val(data.default_channel);
-                $('#channels').val(data.default_channel);
-                messages.set_channel(data.default_channel);
-                update_messages();
-            }
-
-            if ("debug" in data) {
-                context.debug = data.debug == 1 ? true : false;
-            }
-
-            // signal that the config has finished loading
-            context.config_loaded = true;
+        if ("default_channel" in data) {
+            messages.set_channel(data.default_channel);
+            update_messages();
         }
-    ).fail(
-        (error) => {
-            // TODO error message on UI describing failure
-            error("Failed to load configuration from config API: " + error);
-        }
-    );
+        context.config_loaded = true;
+    });
 
-    //$('#logout').html('Logout ' + call_sign);
     messages.subscribe(update_messages);
     messages.subscribe(new_messages);
     messages.subscribe(update_channels);
     messages.check();
     load_users();
-    monitor_last_update();
-
-    // start event loops to update MeshChat client
-    setInterval(() => { messages.check() }, 15000);
-    setInterval(() => { load_users() }, 15000);
-    setInterval(() => { monitor_last_update() }, 2500);
+    
+    setInterval(function() { messages.check() }, 15000);
+    setInterval(function() { load_users() }, 15000);
+    setInterval(function() { monitor_last_update() }, 2500);
 }
 
 function meshchat_init() {
-    debug("meshchat_init()");
-
     $('#message').val('');
     meshchat_id = Cookies.get('meshchat_id');
     if (meshchat_id == undefined) {
-        // TODO set default expiration of cookie
         Cookies.set('meshchat_id', make_id());
         meshchat_id = Cookies.get('meshchat_id');
     }
 
     $('#submit-message').on('click', function(e) {
         e.preventDefault();
-        if ($('#message').val().length == 0) return;
+        var btn = $(this);
+        var msgInput = $('#message');
+        if (msgInput.val().length == 0) return;
 
-        // ohSnapX(); removed as SweetAlert handles alerts differently
+        btn.prop("disabled", true);
+        msgInput.prop("disabled", true);
+        var originalHtml = btn.html();
+        btn.html('...');
 
-        // disable message sending box
-        $(this).prop("disabled", true);
-        $('#message').prop("disabled", true);
-        $(this).html('<div class="loading"></div>');
-
-        let channel = $('#send-channel').val();
-
+        var channel = $('#send-channel').val();
         if ($('#new-channel').val() != '') {
             channel = $('#new-channel').val();
-            $('#send-channel').val('Everything');
         }
 
-        messages.send($('#message').val(), channel, call_sign).then(
-            // sent
-            (sent) => {
-                $('#message').val('');
-                Swal.fire({
-                    icon: 'success',
-                    title: 'Sent',
-                    text: 'Message sent',
-                    timer: 2000,
-                    showConfirmButton: false,
-                    toast: true,
-                    position: 'top-end'
-                });
-                update_messages(Messages.NEW_MSG);
-
-                // clear out new channel box in case it was used and
-                // reset to normal selection box
-                $('#new-channel').val('');
-                $('#new-channel').hide();
-                $('#send-channel').show();
-            },
-            // error
-            (err_msg) => {
-                Swal.fire({
-                    icon: 'error',
-                    title: 'Error',
-                    text: err_msg
-                });
-            }
-        ).finally(() => {
-            // change the channel selector to the channel the message was
-            // just sent to
-            $('#channels').val(channel);
-            messages.set_channel(channel);
-            update_messages();
-
-            // re-enable message sending box
-            $(this).prop("disabled", false);
-            $('#message').prop("disabled", false);
-            $(this).html('Send');
+        messages.send(msgInput.val(), channel, call_sign).done(function() {
+            msgInput.val('');
+            Swal.fire({
+                icon: 'success', title: 'Sent', text: 'Message sent',
+                timer: 2000, showConfirmButton: false, toast: true, position: 'top-end'
+            });
+            update_messages(Messages.NEW_MSG);
+            $('#new-channel').val('').hide();
+            $('#send-channel').show();
+        }).fail(function(err) {
+            Swal.fire({ icon: 'error', title: 'Error', text: err });
+        }).always(function() {
+            btn.prop("disabled", false);
+            msgInput.prop("disabled", false);
+            btn.html(originalHtml);
         });
     });
 
     $('#submit-call-sign').on('click', function(e) {
         e.preventDefault();
-        if ($('#call-sign').val().length == 0) return;
-        call_sign = $('#call-sign').val().toUpperCase();
-        // TODO set default expiration of cookie
+        var val = $('#call-sign').val();
+        if (val.length == 0) return;
+        call_sign = val.toUpperCase();
         Cookies.set('meshchat_call_sign', call_sign);
         $('#call-sign-container').addClass('hidden');
         $('#chat-container').removeClass('hidden');
-        $('#callsign').html('<strong>Call Sign:</strong> ' + call_sign);
         start_chat();
     });
 
     $('#channels').on('change', function() {
-        $('#send-channel').val(this.value);
         messages.set_channel(this.value);
         update_messages();
     });
 
-    $('#search').keyup(function() {
-        //console.log(this.value);
-        update_messages();
-    });
-
-    $('#message-expand').on('click', function(e) {
-        $('#message-panel').toggleClass('message-panel-collapse');
-        $('#message-panel-body').toggleClass('message-panel-body-collapse');
-        $('#users-panel').toggleClass('users-panel-collapse');
-        $('#users-panel-body').toggleClass('users-panel-body-collapse');
-    });
-
-    // allow user to enter new channel
-    $('#send-channel').on('change', function() {
-        if (this.value == "Add New Channel") {
-            $('#new-channel').show().focus();
-            $(this).hide();
-        }
-    });
-
-    // process <ENTER> to send a message, <SHIFT>+<ENTER> for new line
     $('#message').keydown(function (e) {
         if ((e.keyCode == 10 || e.keyCode == 13) && !e.shiftKey) {
             e.preventDefault();
-            $("#submit-message").trigger( "click" );
+            $("#submit-message").trigger("click");
         }
     });
 
-    // login with a cookie
     var cookie_call_sign = Cookies.get('meshchat_call_sign');
     if (cookie_call_sign == undefined) {
         $('#call-sign-container').removeClass('hidden');
@@ -284,65 +183,39 @@ function meshchat_init() {
     }
 }
 
-let users_updating = false;
+var users_updating = false;
 function load_users() {
-    debug("load_users()");
-
-    if (users_updating == true) return;
-    console.debug("load_users()");
-
-    // lock to prevent simultaneous updates
+    if (users_updating) return;
     users_updating = true;
 
-    $.getJSON('/cgi-bin/meshchat?action=users&call_sign=' + call_sign + '&id=' + meshchat_id,
-        (data) => {
-            if (data == null || data == 0) return;
+    $.getJSON('/cgi-bin/meshchat?action=users&call_sign=' + call_sign + '&id=' + meshchat_id, function(data) {
+        if (!data) return;
+        var html = '';
+        var count = 0;
+        var now = epoch();
 
-            let html = '';
-            let count = 0;
+        for (var i = 0; i < data.length; i++) {
+            var entry = data[i];
+            if ((now - entry.epoch) > 240) continue;
 
-            for (var entry of data) {
-                var date = new Date(0);
-                date.setUTCSeconds(entry.epoch);
+            var date = new Date(0);
+            date.setUTCSeconds(entry.epoch);
+            var timeStr = date.getHours() + ':' + (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes());
+            var itemClass = (now - entry.epoch) > 120 ? 'user-item inactive' : 'user-item';
 
-                // user heartbeat timeout > 4 mins
-                if ((epoch() - entry.epoch) > 240) continue;
-
-                var timeStr = date.getHours() + ':' + (date.getMinutes() < 10 ? '0' + date.getMinutes() : date.getMinutes());
-                var activeStatus = 'Last seen: ' + timeStr;
-
-                // user heartbeat > 2 mins, expiring
-                var itemClass = (epoch() - entry.epoch) > 120 ? 'user-item inactive' : 'user-item';
-
-                html += '<div class="' + itemClass + '">';
-                html += '  <div class="user-main">';
-                
-                // Content for top line (Callsign)
-                var callsignHtml = '<span class="user-callsign">' + entry.call_sign + '</span>';
-                
-                // Content for bottom line (Node)
-                var nodeUrl = (entry.platform == 'node') ? 
-                              'http://' + aredn_domain(entry.node) + ':8080' : 
-                              'http://' + aredn_domain(entry.node);
-                var nodeLink = '(<a href="' + nodeUrl + '" target="_blank" class="user-node-link">' + entry.node + '</a>)';
-                var nodeHtml = '<span class="user-node">' + nodeLink + '</span>';
-
-                if (enable_video == 0) {
-                    html += callsignHtml + nodeHtml;
-                } else {
-                    html += '<a href="' + entry.id + '" onclick="start_video(\'' + entry.id + '\');return false;">' + callsignHtml + '</a>' + nodeHtml;
-                }
-                
-                html += '  </div>';
-                html += '  <div class="user-activity">' + activeStatus + '</div>';
-                html += '</div>';
-
-                count++;
-            }
-            $('#users-table').html(html);
-            $('#users-count').html(count);
-        }).always(() => {
-            // allow updates again
-            users_updating = false;
-        });
+            html += '<div class="' + itemClass + '">';
+            html += '  <div class="user-main">';
+            html += '    <span class="user-callsign">' + entry.call_sign + '</span>';
+            var nodeUrl = (entry.platform == 'node') ? 'http://' + aredn_domain(entry.node) + ':8080' : 'http://' + aredn_domain(entry.node);
+            html += '    <span class="user-node">(<a href="' + nodeUrl + '" target="_blank" class="user-node-link">' + entry.node + '</a>)</span>';
+            html += '  </div>';
+            html += '  <div class="user-activity">Last seen: ' + timeStr + '</div>';
+            html += '</div>';
+            count++;
+        }
+        $('#users-table').html(html);
+        $('#users-count').html(count);
+    }).always(function() {
+        users_updating = false;
+    });
 }

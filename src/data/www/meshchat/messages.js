@@ -1,296 +1,173 @@
 // Messages is a singleton that keeps a copy of all messages
-class Messages {
-  static NEW_MSG = 1;
-  static CHAN_UPDATE = 2;
-  static MSG_UPDATE = 3;
-
-  constructor() {
-    if (!this.__instance) {
-      this.messages = new Map();
-      this.message_order = new Array();
-      this.delete_list = new Array(); // future enhancement
-      this.db_version = 0;
-      this.last_update_time = 0;
-      this._updating = false;
-      this._message_checksum = null; // only messages in channel
-
-      this.__current_channel = "";
-      this.__channels = new Array();
-      this.__observers = new Array();
-
-      this.__instance = this;
+function Messages() {
+    if (Messages.prototype.__instance) {
+        return Messages.prototype.__instance;
     }
-    return this.__instance;
-  }
+    this.messages = new Map();
+    this.message_order = new Array();
+    this.delete_list = new Array();
+    this.db_version = 0;
+    this.last_update_time = 0;
+    this._updating = false;
+    this._message_checksum = null;
 
-  // return reference to singleton, creating if necessary
-  getInstance() {
-    if (!this.__instance) {
-      this.__instance = new Messages();
-    }
-    return this.__instance;
-  }
+    this.__current_channel = "";
+    this.__channels = new Array();
+    this.__observers = new Array();
 
-  /* check() retrieves the current message database version from the
-       MeshChat server and compares it with the last known version.
-       If the database version is different (i.e. database has new messages),
-       then an update cycle is kicked off by calling fetch() */
-  check() {
-    console.debug("Messages.check()");
+    Messages.prototype.__instance = this;
+}
 
-    var pending_db_version = 0;
+Messages.NEW_MSG = 1;
+Messages.CHAN_UPDATE = 2;
+Messages.MSG_UPDATE = 3;
 
-    // currently updating, ignore this check
-    if (this._updating == true) {
-      console.debug("Message.check() skipped due to messages being updated.");
-      return;
-    }
-
-    // lock out all other updates
+Messages.prototype.check = function() {
+    var self = this;
+    if (this._updating == true) return;
     this._updating = true;
 
     $.getJSON(
-      "/cgi-bin/meshchat?action=messages_version_ui&call_sign=" +
-        call_sign +
-        "&id=" +
-        meshchat_id +
-        "&epoch=" +
-        epoch(),
-      (data) => {
+        "/cgi-bin/meshchat?action=messages_version_ui&call_sign=" +
+        call_sign + "&id=" + meshchat_id + "&epoch=" + epoch()
+    ).done(function(data) {
         if (data == null || data == 0) {
-          this._updating = false;
-        } else if (
-          "messages_version" in data &&
-          this.db_version != data.messages_version
-        ) {
-          this.fetch(data.messages_version);
+            self._updating = false;
+        } else if ("messages_version" in data && self.db_version != data.messages_version) {
+            self.fetch(data.messages_version);
         } else {
-          this._updating = false;
+            self._updating = false;
         }
-      },
-    ).fail((error) => {
-      // TODO error message on UI describing failure
-      this._updating = false;
+    }).fail(function() {
+        self._updating = false;
     });
-  }
+};
 
-  /* fetch() is used to retrieve the messages from the message database.
-       It is told the new database version with the pending_version param.
-       All messages are then stored in the local message db (this.messages)
-       and update() is called to update all the internal counters */
-  fetch(pending_version) {
-    console.debug("Messages.fetch(pending_version = " + pending_version + ")");
-
+Messages.prototype.fetch = function(pending_version) {
+    var self = this;
     $.getJSON(
-      "/cgi-bin/meshchat?action=messages&call_sign=" +
-        call_sign +
-        "&id=" +
-        meshchat_id +
-        "&epoch=" +
-        epoch(),
-      (data) => {
-        if (data == null || data == 0) empty();
-
-        // integrate new messages into the message DB
-        data.forEach((entry) => {
-          this.messages.set(entry.id, entry);
+        "/cgi-bin/meshchat?action=messages&call_sign=" +
+        call_sign + "&id=" + meshchat_id + "&epoch=" + epoch()
+    ).done(function(data) {
+        if (data == null || data == 0) return;
+        data.forEach(function(entry) {
+            self.messages.set(entry.id, entry);
         });
-
-        this.update();
-        this.last_update_time = epoch();
-        this.db_version = pending_version;
-        this._updating = false;
-        this.notify(Messages.MSG_UPDATE);
-        this.notify(Messages.CHAN_UPDATE);
-      },
-    ).fail((error) => {
-      // TODO error message on UI describing failure
-      this._updating = false;
+        self.update();
+        self.last_update_time = epoch();
+        self.db_version = pending_version;
+        self._updating = false;
+        self.notify(Messages.MSG_UPDATE);
+        self.notify(Messages.CHAN_UPDATE);
+    }).fail(function() {
+        self._updating = false;
     });
-  }
+};
 
-  /* update the message DB with counts, channels, etc.
-       If msg_ids is not specified, then process all messages in the
-       DB */
-  update(msg_ids = null) {
-    console.debug("Messages.update(msg_ids=" + JSON.stringify(msg_ids) + " )");
-
-    if (msg_ids === null) {
-      msg_ids = Array.from(this.messages.keys());
+Messages.prototype.update = function(msg_ids) {
+    var self = this;
+    if (msg_ids === undefined || msg_ids === null) {
+        msg_ids = Array.from(this.messages.keys());
     }
 
-    for (var id of msg_ids.values()) {
-      var message = this.messages.get(id);
-
-      // if there is not a message don't try to process it.
-      if (message === undefined) {
-        // throw error message
-        continue;
-      }
-
-      // null channel names is the Everything channel (empty string)
-      if (message.channel === null) {
-        message.channel = "";
-      }
-
-      // update list of available channels
-      if (!this.__channels.includes(message.channel)) {
-        this.__channels.push(message.channel);
-      }
-
-      // TODO not sure this is actually needed, get should be returning a reference
-      this.messages.set(id, message);
-    }
-
-    // sort the messages by time (ascending, oldest first)
-    this.message_order = Array.from(this.messages.keys()).sort((a, b) => {
-      let a_msg = this.messages.get(a);
-      let b_msg = this.messages.get(b);
-      return a_msg.epoch < b_msg.epoch ? -1 : 1;
+    msg_ids.forEach(function(id) {
+        var message = self.messages.get(id);
+        if (message === undefined) return;
+        if (message.channel === null) message.channel = "";
+        if (!self.__channels.indexOf(message.channel) === -1) {
+            self.__channels.push(message.channel);
+        }
     });
-  }
 
-  set_channel(chan) {
-    console.debug("Messages.set_channel(chan=" + chan + ")");
+    this.message_order = Array.from(this.messages.keys()).sort(function(a, b) {
+        var a_msg = self.messages.get(a);
+        var b_msg = self.messages.get(b);
+        return a_msg.epoch < b_msg.epoch ? -1 : 1;
+    });
+};
+
+Messages.prototype.set_channel = function(chan) {
     this.__current_channel = chan;
     this._message_checksum = null;
-  }
+};
 
-  current_channel() {
+Messages.prototype.current_channel = function() {
     return this.__current_channel;
-  }
+};
 
-  // return a list of channels available across all messages
-  channels() {
-    return Array.from(this.__channels.values());
-  }
+Messages.prototype.channels = function() {
+    return this.__channels;
+};
 
-  send(message, channel, call_sign) {
-    console.debug(
-      "Messages.send(message='" +
-        message +
-        "', channel=" +
-        channel +
-        ", call_sign=" +
-        call_sign +
-        ")",
-    );
-    let params = {
-      action: "send_message",
-      message: message,
-      call_sign: call_sign,
-      epoch: epoch(),
-      id: this._create_id(),
-      channel: channel,
+Messages.prototype.send = function(message, channel, call_sign) {
+    var self = this;
+    var params = {
+        action: "send_message",
+        message: message,
+        call_sign: call_sign,
+        epoch: epoch(),
+        id: this._create_id(),
+        channel: channel
     };
 
-    // { timeout: 5000, retryLimit: 3, dataType: "json", data: params}
-    return new Promise((sent, error) => {
-      $.post("/cgi-bin/meshchat", params, (data) => {
+    return $.post("/cgi-bin/meshchat", params).then(function(data) {
         if (data.status == 500) {
-          error("Error sending message: " + data.response);
+            return $.Deferred().reject("Error sending message: " + data.response);
         } else {
-          // add the message to the in memory message DB
-          this.messages.set(params["id"], {
-            id: params["id"],
-            message: message,
-            call_sign: call_sign,
-            epoch: params["epoch"],
-            channel: channel,
-            node: node_name(),
-            platform: platform(),
-          });
-
-          // Add the channel to the list
-          if ((!channel) in this.channels()) {
-            this.__channels.push(channel);
-            this.set_channel(channel);
-            this.notify(Messages.CHAN_UPDATE);
-          }
-
-          // update internal message checksum with locally
-          // created message ID so not to trigger alert sound
-          this._message_checksum += parseInt(params["id"], 16);
-          this.update();
-          this.notify(Messages.MSG_UPDATE);
-          sent();
+            self.messages.set(params.id, {
+                id: params.id,
+                message: message,
+                call_sign: call_sign,
+                epoch: params.epoch,
+                channel: channel,
+                node: config ? config.node : '',
+                platform: config ? config.platform : 'node'
+            });
+            self._message_checksum += parseInt(params.id, 16);
+            self.update();
+            self.notify(Messages.MSG_UPDATE);
         }
-      }).fail((error) => {
-        if (error == "timeout") {
-          this.tryCount++;
-          if (this.tryCount <= this.retryLimit) {
-            //try again
-            $.ajax(this);
-            return;
-          }
-          error(error);
-        }
-      });
     });
-  }
+};
 
-  // return a rendered version of a block of messages
-  render(channel, search_filter) {
-    console.debug(
-      "Messages.render(channel=" +
-        channel +
-        ", search_filter=" +
-        search_filter +
-        ")",
-    );
-    let html = "";
-    let search = search_filter.toLowerCase();
-    let message_checksum = 0;
+Messages.prototype.render = function(channel, search_filter) {
+    var self = this;
+    var html = "";
+    var search = search_filter ? search_filter.toLowerCase() : "";
+    var message_checksum = 0;
 
-    for (var id of this.message_order) {
-      var message = this.messages.get(id);
+    this.message_order.forEach(function(id) {
+        var message = self.messages.get(id);
+        var date = new Date(0);
+        date.setUTCSeconds(message.epoch);
+        message.date = date;
 
-      // calculate the date for the current message
-      let date = new Date(0);
-      date.setUTCSeconds(message.epoch);
-      message.date = date;
-
-      if (search != "") {
-        //console.log(search);
-        //console.log(message.toLowerCase());
-        if (
-          message.message.toLowerCase().search(search) == -1 &&
-          message.call_sign.toLowerCase().search(search) == -1 &&
-          message.node.toLowerCase().search(search) == -1 &&
-          format_date(date).toLowerCase().search(search) == -1
-        ) {
-          continue;
+        if (search != "") {
+            if (message.message.toLowerCase().indexOf(search) == -1 &&
+                message.call_sign.toLowerCase().indexOf(search) == -1 &&
+                message.node.toLowerCase().indexOf(search) == -1) {
+                return;
+            }
         }
-      }
 
-      if (channel == message.channel || this.__current_channel == "") {
-        html += this.render_row(message);
+        if (channel == message.channel || self.__current_channel == "") {
+            html += self.render_row(message);
+            message_checksum += parseInt(message.id, 16);
+        }
+    });
 
-        // add this message to the checksum
-        message_checksum += parseInt(message.id, 16);
-      }
-    }
-
-    // provide a message if no messages were found
     if (html == "") {
-      html = "<tr><td>No messages found</td></tr>";
+        html = '<div class="no-messages">No messages found</div>';
     }
 
-    // this._message_checksum == null is the first rendering of the
-    // message table. No need to sound an alert.
-    if (
-      this._message_checksum != null &&
-      message_checksum != this._message_checksum
-    ) {
-      this.notify(Messages.NEW_MSG);
+    if (this._message_checksum != null && message_checksum != this._message_checksum) {
+        this.notify(Messages.NEW_MSG);
     }
     this._message_checksum = message_checksum;
-
     return html;
-  }
+};
 
-  // helper to format date smartly
-  _format_smart_date(date) {
+Messages.prototype._format_smart_date = function(date) {
     var now = new Date();
     var isToday = (date.getDate() == now.getDate() && 
                    date.getMonth() == now.getMonth() && 
@@ -302,26 +179,18 @@ class Messages {
     hours = hours < 10 ? '0' + hours : hours;
     
     var timeStr = hours + ':' + minutes;
-    
-    if (isToday) {
-        return timeStr;
-    } else {
-        var day = date.getDate();
-        var month = date.getMonth() + 1;
-        var year = date.getFullYear();
-        return day + '.' + month + '.' + year + ' ' + timeStr;
-    }
-  }
+    if (isToday) return timeStr;
+    return date.getDate() + '.' + (date.getMonth() + 1) + '.' + date.getFullYear() + ' ' + timeStr;
+};
 
-  render_row(msg_data) {
-    let message = msg_data.message.replace(/(\r\n|\n|\r)/g, "<br/>");
-    let currentUser = Cookies.get("meshchat_call_sign");
-    let isSent = msg_data.call_sign.toUpperCase() === (currentUser ? currentUser.toUpperCase() : "");
+Messages.prototype.render_row = function(msg_data) {
+    var message = msg_data.message.replace(/(\r\n|\n|\r)/g, "<br/>");
+    var currentUser = Cookies.get("meshchat_call_sign");
+    var isSent = msg_data.call_sign.toUpperCase() === (currentUser ? currentUser.toUpperCase() : "");
+    var alignmentClass = isSent ? "bubble-sent" : "bubble-received";
+    var smartTime = this._format_smart_date(msg_data.date);
     
-    let alignmentClass = isSent ? "bubble-sent" : "bubble-received";
-    let smartTime = this._format_smart_date(msg_data.date);
-    
-    let html = '<div class="bubble-wrapper ' + alignmentClass + '">';
+    var html = '<div class="bubble-wrapper ' + alignmentClass + '">';
     html += '  <div class="message-bubble">';
     html += '    <div class="bubble-info">';
     html += '      <span class="bubble-callsign">' + msg_data.call_sign + '</span>';
@@ -331,30 +200,18 @@ class Messages {
     html += '    <div class="bubble-timestamp">' + smartTime + '</div>';
     html += '  </div>';
     html += '</div>';
-
     return html;
-  }
+};
 
-  // generate unique message IDs
-  _create_id() {
-    let seed = epoch().toString() + Math.floor(Math.random() * 99999);
-    let hash = md5(seed);
-    return hash.substring(0, 8);
-  }
+Messages.prototype._create_id = function() {
+    var seed = epoch().toString() + Math.floor(Math.random() * 99999);
+    return md5(seed).substring(0, 8);
+};
 
-  // Observer functions
-  subscribe(func) {
-    console.debug("Messages.subscribe(func=" + func.name + ")");
+Messages.prototype.subscribe = function(func) {
     this.__observers.push(func);
-  }
+};
 
-  unsubscribe(func) {
-    console.debug("Messages.unsubscribe(func=" + func + ")");
-    this.__observers = this.__observers.filter((observer) => observer !== func);
-  }
-
-  notify(reason) {
-    console.debug("Messages.notify(reason=" + reason + ")");
-    this.__observers.forEach((observer) => observer(reason));
-  }
-}
+Messages.prototype.notify = function(reason) {
+    this.__observers.forEach(function(observer) { observer(reason); });
+};
