@@ -13,31 +13,7 @@ var context = {
 
 $(function () {
     meshchat_init();
-    init_dark_mode();
 });
-
-function init_dark_mode() {
-    var saved = Cookies.get('meshchat_dark_mode');
-    if (saved === '1') {
-        $('body').addClass('dark-mode');
-        $('#dark-mode-icon').attr('src', 'assets/moon.svg');
-    } else {
-        $('#dark-mode-icon').attr('src', 'assets/sun.svg');
-    }
-
-    $('#dark-mode-toggle').on('click', function () {
-        var isDark = $('body').hasClass('dark-mode');
-        if (isDark) {
-            $('body').removeClass('dark-mode');
-            $('#dark-mode-icon').attr('src', 'assets/sun.svg');
-            Cookies.set('meshchat_dark_mode', '0', { expires: 365 });
-        } else {
-            $('body').addClass('dark-mode');
-            $('#dark-mode-icon').attr('src', 'assets/moon.svg');
-            Cookies.set('meshchat_dark_mode', '1', { expires: 365 });
-        }
-    });
-}
 
 
 function monitor_last_update() {
