@@ -1,17 +1,17 @@
 var meshchat_id;
 var last_messages_update = epoch();
-var call_sign            = 'NOCALL';
-var enable_video         = 0;
+var call_sign = 'NOCALL';
+var enable_video = 0;
 
-var messages         = new Messages();
-var alert_sound      = new Audio('alert.mp3');
+var messages = new Messages();
+var alert_sound = new Audio('alert.mp3');
 
 var context = {
     config_loaded: false,
     debug: true,
 };
 
-$(function() {
+$(function () {
     meshchat_init();
 });
 
@@ -22,14 +22,14 @@ function monitor_last_update() {
 
 function scrollToBottom() {
     var scrollArea = $('#messages-scroll-area');
-    if(scrollArea.length > 0) {
+    if (scrollArea.length > 0) {
         scrollArea.scrollTop(scrollArea[0].scrollHeight);
     }
 }
 
 function update_messages(reason) {
     if (reason && reason != Messages.MSG_UPDATE) return;
-    
+
     var html = messages.render($('#channels').val(), $('#search').val());
     if (html) {
         $('#message-table').html(html);
@@ -46,9 +46,9 @@ function new_messages(reason) {
 function update_channels(reason) {
     if (reason != Messages.CHAN_UPDATE) return;
 
-    var msg_refresh      = false;
-    var channels         = messages.channels().sort();
-    var channel_filter   = $('#channels').val();
+    var msg_refresh = false;
+    var channels = messages.channels().sort();
+    var channel_filter = $('#channels').val();
     var cur_send_channel = $('#send-channel').val();
 
     if (cur_send_channel == null) {
@@ -61,7 +61,7 @@ function update_channels(reason) {
     $('#channels').find('option').remove().end();
 
     function add_option(select, title, value) {
-        select.append("<option value='"+value+"'>"+title+"</option>");
+        select.append("<option value='" + value + "'>" + title + "</option>");
     }
 
     add_option($('#send-channel'), "Everything", "");
@@ -82,12 +82,12 @@ function update_channels(reason) {
 }
 
 function start_chat() {
-    $.getJSON('/cgi-bin/meshchat?action=config', function(data) {
+    $.getJSON('/cgi-bin/meshchat?action=config', function (data) {
         config = data;
         document.title = 'Mesh Chat v' + data.version;
         $('#node').html('<strong>Node:</strong> ' + data.node);
         $('#zone').html('<strong>Zone:</strong> ' + data.zone);
-        $('#copyright').html('Mesh Chat v' + data.version + ' Copyright &copy; ' + new Date().getFullYear() + ' <a href="http://www.trevorsbench.com">Trevor Paskett - K7FPV</a> <small>(remix by TA2DMX)</small>');
+        document.title = 'Mesh Chat v' + data.version; // copyright HTML'de statik olarak korunur
 
         if ("default_channel" in data) {
             messages.set_channel(data.default_channel);
@@ -101,10 +101,10 @@ function start_chat() {
     messages.subscribe(update_channels);
     messages.check();
     load_users();
-    
-    setInterval(function() { messages.check() }, 15000);
-    setInterval(function() { load_users() }, 15000);
-    setInterval(function() { monitor_last_update() }, 2500);
+
+    setInterval(function () { messages.check() }, 15000);
+    setInterval(function () { load_users() }, 15000);
+    setInterval(function () { monitor_last_update() }, 2500);
 }
 
 function meshchat_init() {
@@ -115,7 +115,7 @@ function meshchat_init() {
         meshchat_id = Cookies.get('meshchat_id');
     }
 
-    $('#submit-message').on('click', function(e) {
+    $('#submit-message').on('click', function (e) {
         e.preventDefault();
         var btn = $(this);
         var msgInput = $('#message');
@@ -131,7 +131,7 @@ function meshchat_init() {
             channel = $('#new-channel').val();
         }
 
-        messages.send(msgInput.val(), channel, call_sign).done(function() {
+        messages.send(msgInput.val(), channel, call_sign).done(function () {
             msgInput.val('');
             Swal.fire({
                 icon: 'success', title: 'Sent', text: 'Message sent',
@@ -140,16 +140,16 @@ function meshchat_init() {
             update_messages(Messages.NEW_MSG);
             $('#new-channel').val('').hide();
             $('#send-channel').show();
-        }).fail(function(err) {
+        }).fail(function (err) {
             Swal.fire({ icon: 'error', title: 'Error', text: err });
-        }).always(function() {
+        }).always(function () {
             btn.prop("disabled", false);
             msgInput.prop("disabled", false);
             btn.html(originalHtml);
         });
     });
 
-    $('#submit-call-sign').on('click', function(e) {
+    $('#submit-call-sign').on('click', function (e) {
         e.preventDefault();
         var val = $('#call-sign').val();
         if (val.length == 0) return;
@@ -160,7 +160,7 @@ function meshchat_init() {
         start_chat();
     });
 
-    $('#channels').on('change', function() {
+    $('#channels').on('change', function () {
         messages.set_channel(this.value);
         update_messages();
     });
@@ -188,7 +188,7 @@ function load_users() {
     if (users_updating) return;
     users_updating = true;
 
-    $.getJSON('/cgi-bin/meshchat?action=users&call_sign=' + call_sign + '&id=' + meshchat_id, function(data) {
+    $.getJSON('/cgi-bin/meshchat?action=users&call_sign=' + call_sign + '&id=' + meshchat_id, function (data) {
         if (!data) return;
         var html = '';
         var count = 0;
@@ -215,7 +215,7 @@ function load_users() {
         }
         $('#users-table').html(html);
         $('#users-count').html(count);
-    }).always(function() {
+    }).always(function () {
         users_updating = false;
     });
 }
