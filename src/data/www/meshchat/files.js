@@ -3,34 +3,83 @@ var free_space = 0;
 
 function monitor_last_update() {
     var secs = epoch() - last_update;
-    $('#last-update').html('<strong>Updated:</strong> ' + secs + ' seconds ago');
+    var timeStr = secs + 's';
+    if (secs >= 3600) {
+        timeStr = Math.floor(secs / 3600) + 'h';
+    } else if (secs >= 60) {
+        timeStr = Math.floor(secs / 60) + 'm';
+    }
+    $('#last-update').html('<strong>Updated:</strong> ' + timeStr + ' ago');
 }
 
-$(function() {
+$(function () {
     load_files();
-    setInterval(function() {
+    setInterval(function () {
         load_files()
     }, 30000);
-    setInterval(function() { monitor_last_update() }, 2500);
+    setInterval(function () { monitor_last_update() }, 2500);
     var file = null;
-    $('#upload-file').on("change", function(event) {
-        file = event.target.files[0];
-        console.log(event.target.files[0].size);
-        if (event.target.files[0].size > free_space) {
+
+    // Drag and Drop Logic
+    var dropZone = $('#drop-zone');
+    var fileInput = $('#upload-file');
+
+    dropZone.on('click', function () {
+        fileInput.click();
+    });
+
+    dropZone.on('dragover', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).addClass('dragover');
+    });
+
+    dropZone.on('dragleave', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).removeClass('dragover');
+    });
+
+    dropZone.on('drop', function (e) {
+        e.preventDefault();
+        e.stopPropagation();
+        $(this).removeClass('dragover');
+
+        var files = e.originalEvent.dataTransfer.files;
+        if (files.length > 0) {
+            handleFileSelect(files[0]);
+        }
+    });
+
+    fileInput.on("change", function (event) {
+        if (event.target.files.length > 0) {
+            handleFileSelect(event.target.files[0]);
+        }
+    });
+
+    function handleFileSelect(selectedFile) {
+        if (selectedFile.size > free_space) {
             Swal.fire({
                 icon: 'warning',
                 title: 'No Space',
                 text: 'Not enough free space for your file, delete some files first and try again'
             });
-            $('#upload-file').val('');
-            event.preventDefault();
+            fileInput.val('');
+            file = null;
+            return;
         }
-    });
-    $('#download-messages').on('click', function(e) {
+
+        file = selectedFile;
+        $('#selected-file-name').text('Selected: ' + file.name).addClass('active');
+        dropZone.addClass('file-selected');
+
+        console.log("File selected:", file.name, file.size);
+    }
+    $('#download-messages').on('click', function (e) {
         e.preventDefault();
         location.href = '/cgi-bin/meshchat?action=messages_download';
     });
-    $("#upload-button").on("click", function(event) {
+    $("#upload-button").on("click", function (event) {
         event.preventDefault();
         //$('#upload-form').submit();
         var file_data = new FormData();
@@ -45,17 +94,17 @@ $(function() {
             cache: false,
             processData: false,
             contentType: false,
-            beforeSend: function() {
+            beforeSend: function () {
                 $('progress').removeClass('hidden');
             },
-            xhr: function() {
+            xhr: function () {
                 var myXhr = $.ajaxSettings.xhr();
                 if (myXhr.upload) {
                     myXhr.upload.addEventListener('progress', upload_progress, false);
                 }
                 return myXhr;
             },
-            success: function(data) {
+            success: function (data) {
                 if (data.status == 200) {
                     Swal.fire({
                         icon: 'success',
@@ -74,12 +123,15 @@ $(function() {
                     });
                 }
                 $('#upload-file').val('');
+                $('#selected-file-name').text('Maximum size: 10MB').removeClass('active');
+                $('#drop-zone').removeClass('file-selected');
+                file = null;
                 load_files();
             },
-            error: function(data, textStatus, errorThrown) {
+            error: function (data, textStatus, errorThrown) {
                 Swal.fire({ icon: 'error', title: 'Error', text: 'File upload error' });
             },
-            complete: function(jqXHR, textStatus) {
+            complete: function (jqXHR, textStatus) {
                 $('progress').addClass('hidden');
             }
         });
@@ -104,7 +156,7 @@ function fileNameCompare(a, b) {
 }
 
 function load_files() {
-    $.getJSON('/cgi-bin/meshchat?action=files', function(data) {
+    $.getJSON('/cgi-bin/meshchat?action=files', function (data) {
         var html = '';
 
         data.files.sort(fileNameCompare);
@@ -142,12 +194,12 @@ function load_files() {
         $('#total-bytes').html('Total Storage: ' + numeral(data.stats.allowed).format('0.0 b'));
         $('#free-bytes').html('Free Storage: ' + numeral(data.stats.files_free).format('0.0 b'));
         free_space = data.stats.files_free;
-        $(".delete-button").on("click", function(event) {
+        $(".delete-button").on("click", function (event) {
             event.preventDefault();
             $.ajax({
                 url: '/cgi-bin/meshchat?action=delete_file&file=' + encodeURIComponent($(this).attr('file-name')),
                 type: "GET",
-                success: function(data) {
+                success: function (data) {
                     Swal.fire({
                         icon: 'success',
                         title: 'Deleted',
@@ -159,7 +211,7 @@ function load_files() {
                     });
                     load_files();
                 },
-                error: function(data, textStatus, errorThrown) {
+                error: function (data, textStatus, errorThrown) {
                     Swal.fire({
                         icon: 'error',
                         title: 'Delete Error',

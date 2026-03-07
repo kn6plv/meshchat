@@ -1,5 +1,5 @@
 Package: meshchat-api
-Version: 2.19
+Version: 2.20
 Depends: lua, luci-lib-base, libubus-lua
 Provides:
 Source: package/meshchat-api
