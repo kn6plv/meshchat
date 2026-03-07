@@ -53,7 +53,12 @@
               <a class="nav-link px-0 px-xl-3" href="/meshchat/status.html">Status</a>
             </li>
           </ul>
-          <ul class="navbar-nav ms-auto mb-0 align-items-start align-items-xl-center">
+          <ul class="navbar-nav ms-auto mb-0 align-items-start align-items-xl-center gap-2">
+            <li class="nav-item mt-2 mt-xl-0" style="margin-bottom: 0;">
+              <button id="dark-mode-toggle" title="Toggle Dark Mode" aria-label="Toggle Dark Mode">
+                <img id="dark-mode-icon" src="assets/sun.svg" alt="Toggle Dark Mode" width="28" height="28" />
+              </button>
+            </li>
             <li class="nav-item mt-2 mt-xl-0" style="margin-bottom: 0;">
               <a class="btn btn-outline-danger fw-bold text-uppercase px-4" href="#" id="logout"
                 style="letter-spacing: 0.1rem; border-width: 2px;">Logout</a>
@@ -145,27 +150,26 @@
                     id="message"></textarea>
 
                   <div class="composer-actions">
-                    <div class="header-pill-input composer-pill" style="max-width: 200px;">
-                      <span class="pill-icon">
-                        <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
-                          class="bi bi-broadcast" viewBox="0 0 16 16">
-                          <path
-                            d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707m2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708m5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708m2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0" />
-                        </svg>
-                      </span>
-                      <select id="send-channel">
-                        <option value="">Everything</option>
-                      </select>
-                      <input type="text" value="" id="new-channel" placeholder="New channel" class="hidden" />
+                    <div class="composer-channel-wrap">
+                      <div class="header-pill-input composer-pill">
+                        <span class="pill-icon">
+                          <svg xmlns="http://www.w3.org/2000/svg" width="14" height="14" fill="currentColor"
+                            class="bi bi-broadcast" viewBox="0 0 16 16">
+                            <path
+                              d="M3.05 3.05a7 7 0 0 0 0 9.9.5.5 0 0 1-.707.707 8 8 0 0 1 0-11.314.5.5 0 0 1 .707.707m2.122 2.122a4 4 0 0 0 0 5.656.5.5 0 1 1-.708.708 5 5 0 0 1 0-7.072.5.5 0 0 1 .708.708m5.656-.708a.5.5 0 0 1 .708 0 5 5 0 0 1 0 7.072.5.5 0 1 1-.708-.708 4 4 0 0 0 0-5.656.5.5 0 0 1 0-.708m2.122-2.12a.5.5 0 0 1 .707 0 8 8 0 0 1 0 11.313.5.5 0 0 1-.707-.707 7 7 0 0 0 0-9.9.5.5 0 0 1 0-.707zM10 8a2 2 0 1 1-4 0 2 2 0 0 1 4 0" />
+                          </svg>
+                        </span>
+                        <select id="send-channel">
+                          <option value="">Everything</option>
+                        </select>
+                      </div>
+                      <div class="header-pill-input composer-pill hidden" id="new-channel-pill">
+                        <input type="text" value="" id="new-channel" placeholder="New channel" />
+                      </div>
                     </div>
 
-                    <button id="submit-message" class="composer-send-btn" title="Send (Enter)">
-                      <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" fill="currentColor"
-                        class="bi bi-send-fill" viewBox="0 0 16 16">
-                        <path
-                          d="M15.964.686a.5.5 0 0 0-.65-.65L.767 5.855H.766l-.452.18a.5.5 0 0 0-.082.887l.41.26.001.002 4.995 3.178 3.178 4.995.002.001.26.41a.5.5 0 0 0 .886-.083zm-1.833 1.89L6.637 10.07l-.215-.338a.5.5 0 0 0-.154-.154l-.338-.215 7.494-7.494 1.178-.471z" />
-                      </svg>
-                    </button>
+                    <img src="assets/send.svg" alt="Send" id="submit-message" title="Send (Enter)" width="42"
+                      height="42" class="send-icon" style="cursor:pointer; flex-shrink:0;" />
                   </div>
                 </div>
               </form>

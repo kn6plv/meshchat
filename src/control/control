@@ -1,5 +1,5 @@
 Package: meshchat
-Version: 2.20
+Version: 2.21
 Depends: curl, luci-lib-base, libuci-lua, libubus-lua
 Provides:
 Source: package/meshchat
