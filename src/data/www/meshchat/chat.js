@@ -17,7 +17,15 @@ $(function () {
 
 function monitor_last_update() {
     var secs = epoch() - last_messages_update;
-    $('#last-update').html('(' + secs + 's ago)');
+    var label;
+    if (secs < 60) {
+        label = secs + 's ago';
+    } else if (secs < 3600) {
+        label = Math.floor(secs / 60) + 'm ago';
+    } else {
+        label = Math.floor(secs / 3600) + 'h ago';
+    }
+    $('#last-update').html('(' + label + ')');
 }
 
 function scrollToBottom() {
