@@ -578,7 +578,7 @@ form {
   }
 
   .composer-pill {
-    max-width: 140px !important;
+    max-width: 180px !important;
   }
 }
 
@@ -940,6 +940,15 @@ table.remote {
   border-top: 1px solid #f1f5f9;
 }
 
+/* Kanal seçici + new-channel pill'lerini yan yana tutan kapsayıcı */
+.composer-channel-wrap {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex: 1;
+  min-width: 0;
+}
+
 .composer-pill {
   max-width: 180px !important;
   height: 36px !important;
@@ -982,9 +991,10 @@ table.remote {
   transform: scale(0.95);
 }
 
-.composer-send-btn svg {
+.composer-send-btn .send-icon {
+  /* SVG beyaz gÃ¶rÃ¼nÃ¼m iÃ§in filter */
+  filter: brightness(0) invert(1);
   margin-left: 2px;
-  /* Visual optical center fix for send icon */
 }
 
 #submit-message {
@@ -1156,4 +1166,284 @@ table.remote {
 
 .swal2-html-container {
   font-size: 1.1em !important;
+}
+
+/* ============================================================
+   DARK MODE
+   Activated by adding class "dark-mode" to <body>
+   ============================================================ */
+
+body.dark-mode {
+  background-color: #0d1117;
+  color: #e6edf3;
+}
+
+/* Navbar */
+body.dark-mode .navbar {
+  background-color: #161b22 !important;
+  border-bottom-color: #30363d !important;
+}
+
+body.dark-mode .navbar-brand {
+  color: #58a6ff !important;
+}
+
+body.dark-mode .nav-link {
+  color: #c9d1d9 !important;
+}
+
+body.dark-mode .nav-link:hover,
+body.dark-mode .nav-link.active {
+  color: #58a6ff !important;
+}
+
+body.dark-mode .navbar-collapse {
+  background-color: #161b22 !important;
+}
+
+body.dark-mode .navbar-toggler-icon {
+  filter: invert(1);
+}
+
+/* Dark mode toggle button — her zaman yuvarlak */
+#dark-mode-toggle {
+  background: #f0f2f5;
+  border: 2px solid #e1e8ed;
+  border-radius: 50%;
+  width: 44px;
+  height: 44px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background 0.2s, border-color 0.2s;
+  padding: 0;
+}
+
+/* Sun ikonu: light modda koyu mavi tonu */
+#dark-mode-icon {
+  filter: invert(30%) sepia(80%) saturate(500%) hue-rotate(180deg) brightness(90%);
+  transition: filter 0.3s;
+  display: block;
+}
+
+body.dark-mode #dark-mode-toggle {
+  background: #21262d;
+  border-color: #30363d;
+}
+
+/* Moon ikonu: dark modda açık gri-beyaz */
+body.dark-mode #dark-mode-icon {
+  filter: brightness(0) invert(0.85);
+}
+
+#dark-mode-toggle:hover {
+  border-color: #58a6ff;
+  background-color: rgba(88, 166, 255, 0.12);
+}
+
+/* Send button — sistem mavisi (#337ab7) */
+#submit-message.send-icon {
+  /* #337ab7 için hesaplanmış CSS filter */
+  filter: invert(38%) sepia(72%) saturate(450%) hue-rotate(178deg) brightness(90%) contrast(90%);
+  transition: transform 0.15s, opacity 0.15s, filter 0.15s;
+}
+
+#submit-message.send-icon:hover {
+  transform: scale(1.08);
+  filter: invert(38%) sepia(72%) saturate(600%) hue-rotate(178deg) brightness(105%) contrast(95%);
+}
+
+#submit-message.send-icon:active {
+  transform: scale(0.94);
+}
+
+
+/* Login screen */
+body.dark-mode #call-sign-container {
+  background-color: #0d1117;
+}
+
+body.dark-mode .login-card {
+  background: #161b22;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.4);
+  color: #e6edf3;
+}
+
+body.dark-mode .login-card h3 {
+  color: #58a6ff;
+}
+
+body.dark-mode .login-card label {
+  color: #8b949e;
+}
+
+body.dark-mode .login-card input[type="text"] {
+  background-color: #0d1117;
+  border-color: #30363d;
+  color: #e6edf3;
+}
+
+body.dark-mode .login-card input[type="text"]:focus {
+  border-color: #58a6ff;
+}
+
+/* Panels */
+body.dark-mode .panel {
+  background: #161b22;
+  border-color: #30363d;
+}
+
+body.dark-mode .panel-header {
+  background-image: linear-gradient(135deg, #1f4068 0%, #0d2137 100%);
+}
+
+body.dark-mode .panel-body {
+  background: #161b22;
+}
+
+/* Messages scroll area */
+body.dark-mode .messages-scroll-area {
+  background-color: #0d1117;
+}
+
+/* Message bubbles */
+body.dark-mode .bubble-sent .message-bubble {
+  background-color: #1a3a2a;
+  color: #e6edf3;
+}
+
+body.dark-mode .bubble-received .message-bubble {
+  background-color: #21262d;
+  color: #e6edf3;
+}
+
+body.dark-mode .bubble-callsign {
+  color: #3fb950;
+}
+
+body.dark-mode .bubble-meta {
+  color: #8b949e;
+}
+
+body.dark-mode .bubble-content {
+  color: #e6edf3;
+}
+
+body.dark-mode .bubble-timestamp {
+  color: #8b949e;
+}
+
+/* User list */
+body.dark-mode .user-item {
+  border-bottom-color: #21262d;
+}
+
+body.dark-mode .user-item:hover {
+  background-color: #21262d;
+}
+
+body.dark-mode .user-callsign {
+  color: #e6edf3;
+}
+
+body.dark-mode .user-node {
+  color: #8b949e;
+}
+
+body.dark-mode .user-node-link {
+  color: #58a6ff;
+}
+
+body.dark-mode .user-activity {
+  color: #8b949e;
+}
+
+/* Composer */
+body.dark-mode .composer-container {
+  background-color: #161b22;
+  border-color: #30363d;
+}
+
+body.dark-mode .composer-container textarea {
+  background-color: #161b22 !important;
+  color: #e6edf3 !important;
+}
+
+body.dark-mode .composer-container textarea::placeholder {
+  color: #6e7681 !important;
+}
+
+body.dark-mode .composer-actions {
+  background-color: #21262d;
+  border-top-color: #30363d;
+}
+
+body.dark-mode .composer-pill {
+  background-color: #0d1117 !important;
+  border-color: #30363d !important;
+}
+
+body.dark-mode .composer-pill select,
+body.dark-mode .composer-pill .pill-icon {
+  color: #c9d1d9 !important;
+}
+
+/* Search / channel pill headers */
+body.dark-mode .header-pill-input {
+  background-color: #21262d !important;
+  border-color: #30363d !important;
+}
+
+body.dark-mode .header-pill-input input[type="text"],
+body.dark-mode .header-pill-input select {
+  background-color: transparent !important;
+  color: #e6edf3 !important;
+}
+
+body.dark-mode .header-pill-input input::placeholder {
+  color: #6e7681 !important;
+}
+
+body.dark-mode .header-pill-input .pill-icon {
+  color: #8b949e !important;
+}
+
+/* Users count badge */
+body.dark-mode #users-count {
+  background-color: #21262d !important;
+  color: #58a6ff !important;
+}
+
+/* Copyright */
+body.dark-mode #copyright a {
+  color: #58a6ff;
+}
+
+/* Loading text */
+body.dark-mode .loading-messages {
+  color: #8b949e;
+}
+
+/* General links */
+body.dark-mode a {
+  color: #58a6ff;
+}
+
+/* Scrollbar (webkit) */
+body.dark-mode ::-webkit-scrollbar {
+  width: 6px;
+}
+
+body.dark-mode ::-webkit-scrollbar-track {
+  background: #0d1117;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb {
+  background: #30363d;
+  border-radius: 3px;
+}
+
+body.dark-mode ::-webkit-scrollbar-thumb:hover {
+  background: #58a6ff;
 }
