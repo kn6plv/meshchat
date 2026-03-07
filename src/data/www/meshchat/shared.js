@@ -21,24 +21,16 @@ function epoch() {
 }
 
 function format_date(date) {
-    var string;
-
-    var year = String(date.getFullYear());
-
-    string = (date.getMonth()+1) + '/' + date.getDate() + '/' + year.slice(-2);
-    string += '<br/>';
-
+    var day = date.getDate();
+    var month = date.getMonth() + 1;
+    var year = date.getFullYear();
+    
     var hours = date.getHours();
     var minutes = date.getMinutes();
-    var ampm = hours >= 12 ? 'PM' : 'AM';
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    hours = hours < 10 ? '0' + hours : hours;
 
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
-    minutes = minutes < 10 ? '0'+minutes : minutes;
-
-    string += hours + ':' + minutes + ' ' + ampm;
-
-    return string;
+    return day + '.' + month + '.' + year + '<br/>' + hours + ':' + minutes;
 }
 
 function make_id()
