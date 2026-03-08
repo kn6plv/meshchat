@@ -1,12 +1,36 @@
 var config;
 
-$(function() {
-    $('#logout').on('click', function(e){
+$(function () {
+    init_dark_mode();
+    $('#logout').on('click', function (e) {
         e.preventDefault();
         Cookies.remove('meshchat_call_sign');
         window.location = '/meshchat';
     });
 });
+
+function init_dark_mode() {
+    var saved = Cookies.get('meshchat_dark_mode');
+    if (saved === '1') {
+        $('body').addClass('dark-mode');
+        $('#dark-mode-icon').attr('src', 'moon.svg');
+    } else {
+        $('#dark-mode-icon').attr('src', 'sun.svg');
+    }
+
+    $('#dark-mode-toggle').on('click', function () {
+        var isDark = $('body').hasClass('dark-mode');
+        if (isDark) {
+            $('body').removeClass('dark-mode');
+            $('#dark-mode-icon').attr('src', 'sun.svg');
+            Cookies.set('meshchat_dark_mode', '0', { expires: 365 });
+        } else {
+            $('body').addClass('dark-mode');
+            $('#dark-mode-icon').attr('src', 'moon.svg');
+            Cookies.set('meshchat_dark_mode', '1', { expires: 365 });
+        }
+    });
+}
 
 function node_name() {
     return config.node;
@@ -21,32 +45,23 @@ function epoch() {
 }
 
 function format_date(date) {
-    var string;
-
-    var year = String(date.getFullYear());
-
-    string = (date.getMonth()+1) + '/' + date.getDate() + '/' + year.slice(-2);
-    string += '<br/>';
+    var day = date.getDate();
+    var month = date.getMonth() + 1;
+    var year = date.getFullYear();
 
     var hours = date.getHours();
     var minutes = date.getMinutes();
-    var ampm = hours >= 12 ? 'PM' : 'AM';
+    minutes = minutes < 10 ? '0' + minutes : minutes;
+    hours = hours < 10 ? '0' + hours : hours;
 
-    hours = hours % 12;
-    hours = hours ? hours : 12; // the hour '0' should be '12'
-    minutes = minutes < 10 ? '0'+minutes : minutes;
-
-    string += hours + ':' + minutes + ' ' + ampm;
-
-    return string;
+    return day + '.' + month + '.' + year + '<br/>' + hours + ':' + minutes;
 }
 
-function make_id()
-{
+function make_id() {
     var text = "";
     var possible = "ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789";
 
-    for( var i=0; i < 5; i++ )
+    for (var i = 0; i < 5; i++)
         text += possible.charAt(Math.floor(Math.random() * possible.length));
 
     return text;
