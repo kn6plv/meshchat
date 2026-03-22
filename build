@@ -50,4 +50,16 @@ cd ../..
 gzip data.tar
 COPYFILE_DISABLE=1 tar cfz meshchat-api_${VERSION}_all.ipk control.tar.gz data.tar.gz debian-binary
 
+mkapk.py \
+    -n meshchat-api \
+    -v ${VERSION} \
+    -d apionly/data \
+    -a noarch \
+    -D 'MeshChat' \
+    -u 'https://github.com/kn6plv/meshchat' \
+    -l 'MIT' \
+    -m 'tim.j.wilkinson@gmail.com' \
+    -p lua,luci-lib-base,libubus-lua \
+    -o .
+
 rm -rf data.tar.gz control.tar.gz *.deb
