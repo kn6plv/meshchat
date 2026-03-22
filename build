@@ -19,6 +19,26 @@ cd ../..
 gzip data.tar
 COPYFILE_DISABLE=1 tar cfz meshchat_${VERSION}_all.ipk control.tar.gz data.tar.gz debian-binary
 
+cp src/control/preinst src/data/.pre-install
+cp src/control/postinst src/data/.post-install
+cp src/control/prerm src/data/.pre-deinstall
+cp src/control/postupgrade src/data/.post-upgrade
+chmod 755 src/data/.pre-install src/data/.post-install src/data/.pre-deinstall src/data/.post-upgrade
+
+mkapk.py \
+    -n meshchat \
+    -v ${VERSION} \
+    -d src/data \
+    -a noarch \
+    -D 'MeshChat' \
+    -u 'https://github.com/kn6plv/meshchat' \
+    -l 'MIT' \
+    -m 'tim.j.wilkinson@gmail.com' \
+    -p curl,lua,luci-lib-base,libuci-lua,libubus-lua \
+    -o .
+
+rm -f src/data/.pre-install src/data/.post-install src/data/.pre-deinstall src/data/.post-upgrade
+
 # API-only
 rm -rf data.tar.gz control.tar.gz
 cd apionly/data
